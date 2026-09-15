@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime uploads and generated files
+backend/uploads/
+dist/
+build/
+
+# Logs and local tooling
+*.log
+.DS_Store
+.vscode/
+coverage/# Dependencies
+node_modules/
+
+# Build files
+dist/
+build/
+
