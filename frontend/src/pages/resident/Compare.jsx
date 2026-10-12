@@ -99,7 +99,7 @@ export default function Compare() {
                       {field.key === 'rating' ? (
                         <span className="r-rating-cell"><Star size={14} fill="var(--saffron)" color="var(--saffron)" /> {p[field.key]}</span>
                       ) : field.key === 'price' ? (
-                        <strong>{p[field.key].replace('Rs.', '₹')}</strong>
+                        <strong>{p[field.key].replace('Rs.', '$').replace('₹', '$')}</strong>
                       ) : p[field.key]}
                     </td>
                   ))}

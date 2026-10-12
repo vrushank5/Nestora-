@@ -83,3 +83,17 @@ export const roleApi = {
     return roles.filter((role) => Number(role.roleId) !== 1 && role.isActive !== false)
   },
 }
+
+export const ownerApi = {
+  getSettings: () => apiRequest('/owner/settings'),
+  updateSettings: (settings) =>
+    apiRequest('/owner/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }),
+  changePassword: ({ currentPassword, newPassword }) =>
+    apiRequest('/owner/settings/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+}

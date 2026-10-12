@@ -17,6 +17,8 @@ import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../context/useAuth.js'
 import { authApi } from '../services/api.js'
 import { homeImages } from '../data/homeData.js'
+import NestoraLogo from '../components/NestoraLogo.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -109,6 +111,7 @@ function Login() {
 
   return (
     <main className="auth-page">
+      <ThemeToggle className="auth-theme-toggle" />
       <section className="auth-shell">
         <motion.aside
           className="auth-visual"
@@ -117,12 +120,8 @@ function Login() {
           transition={{ duration: 0.55 }}
         >
           <img src={homeImages.room} alt="Nestora furnished room" />
-          <Link className="brand-logo auth-brand" to="/">
-            <span className="brand-mark"><Sparkles size={20} /></span>
-            <span>
-              <strong>NESTORA</strong>
-              <small>SECURE ACCESS</small>
-            </span>
+          <Link className="brand-logo auth-brand" to="/" style={{ textDecoration: 'none' }}>
+            <NestoraLogo variant="sidebar" subtitle="SECURE ACCESS" />
           </Link>
           <div className="auth-visual-copy">
             <span><BadgeCheck size={16} /> Verified stay network</span>
@@ -138,9 +137,14 @@ function Login() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.08 }}
         >
+          <div className="auth-panel-brand">
+            <Link to="/" style={{ textDecoration: 'none', display: 'inline-block' }} aria-label="Nestora Home">
+              <NestoraLogo variant="auth-icon" width="52px" />
+            </Link>
+          </div>
           <div className="panel-heading">
             <span className="section-kicker"><ShieldCheck size={14} /> Protected login</span>
-            <h2>{loginRoles[role][0]} access</h2>
+            <h2>Welcome to Nestora</h2>
             <p>{loginRoles[role][1]}</p>
           </div>
 

@@ -166,9 +166,9 @@ function ResidentDashboard() {
     const matchesQuery = !query || [residence.name, residence.location, residence.city, residence.area].some((value) => value.toLowerCase().includes(query))
     const matchesBudget =
       filters.budget === 'Any budget' ||
-      (filters.budget === 'Under Rs.8,000' && residence.priceValue < 8000) ||
-      (filters.budget === 'Rs.8,000 - Rs.12,000' && residence.priceValue >= 8000 && residence.priceValue <= 12000) ||
-      (filters.budget === 'Rs.12,000+' && residence.priceValue > 12000)
+      (filters.budget === 'Under $8,000' && residence.priceValue < 8000) ||
+      (filters.budget === '$8,000 - $12,000' && residence.priceValue >= 8000 && residence.priceValue <= 12000) ||
+      (filters.budget === '$12,000+' && residence.priceValue > 12000)
     const matchesRoom = filters.room === 'Any room' || residence.roomTypes.includes(filters.room)
     const matchesAmenity = filters.amenity === 'All' || residence.amenities.includes(filters.amenity)
     return matchesQuery && matchesBudget && matchesRoom && matchesAmenity
@@ -232,9 +232,9 @@ function ResidentDashboard() {
               </label>
               <select value={filters.budget} onChange={(event) => setFilters({ ...filters, budget: event.target.value })}>
                 <option>Any budget</option>
-                <option>Under Rs.8,000</option>
-                <option>Rs.8,000 - Rs.12,000</option>
-                <option>Rs.12,000+</option>
+                <option>Under $8,000</option>
+                <option>$8,000 - $12,000</option>
+                <option>$12,000+</option>
               </select>
               <select value={filters.room} onChange={(event) => setFilters({ ...filters, room: event.target.value })}>
                 <option>Any room</option>

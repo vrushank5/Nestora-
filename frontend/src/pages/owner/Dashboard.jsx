@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, RefreshCw, AlertTriangle, Building2 } from 'lucide-react'
+import { ArrowRight, Plus, RefreshCw, AlertTriangle, Building2 } from 'lucide-react'
 import PropertyStats from '../../components/owner/PropertyStats.jsx'
 import OwnerPropertyCard from '../../components/owner/OwnerPropertyCard.jsx'
 import { propertyService } from '../../services/propertyService.js'
@@ -110,7 +110,8 @@ export default function Dashboard() {
                 <RefreshCw size={14} /> Refresh
               </button>
               <Link to="/owner/properties" className="owner-text-btn">
-                View All Properties →
+                <span>View All Properties</span>
+                <ArrowRight size={16} />
               </Link>
             </div>
           </div>
@@ -122,7 +123,7 @@ export default function Dashboard() {
               <h3>You haven't added any properties yet.</h3>
               <p>Start listing your co-living spaces and PG accommodations today.</p>
               <Link to="/owner/properties/add" className="primary-button mt-2">
-                <Plus size={18} /> + Add Property
+                <Plus size={18} /> Add Property
               </Link>
             </div>
           )}

@@ -22,7 +22,7 @@ export const residences = [
     location: 'Bodakdev, Ahmedabad',
     rating: '4.8',
     reviews: '120+',
-    price: 'Rs.8,500/month',
+    price: '$8,500/month',
     priceValue: 8500,
     amenities: ['Wi-Fi', 'Meals', 'Laundry'],
     roomTypes: ['Single', 'Twin Sharing'],
@@ -40,7 +40,7 @@ export const residences = [
     location: 'Satellite, Ahmedabad',
     rating: '4.7',
     reviews: '96+',
-    price: 'Rs.7,500/month',
+    price: '$7,500/month',
     priceValue: 7500,
     amenities: ['Wi-Fi', 'Security', 'AC'],
     roomTypes: ['Twin Sharing', 'Triple Sharing'],
@@ -58,7 +58,7 @@ export const residences = [
     location: 'Prahlad Nagar, Ahmedabad',
     rating: '4.9',
     reviews: '144+',
-    price: 'Rs.9,000/month',
+    price: '$9,000/month',
     priceValue: 9000,
     amenities: ['Meals', 'Laundry', 'Housekeeping'],
     roomTypes: ['Single', 'Studio'],
@@ -76,7 +76,7 @@ export const residences = [
     location: 'Vastrapur, Ahmedabad',
     rating: '4.6',
     reviews: '88+',
-    price: 'Rs.8,200/month',
+    price: '$8,200/month',
     priceValue: 8200,
     amenities: ['Wi-Fi', 'AC', 'Meals'],
     roomTypes: ['Single', 'Twin Sharing'],
@@ -106,10 +106,10 @@ export const categories = [
 ]
 
 export const bookings = [
-  ['Nestora Heights', '25 May 2025', '25 Nov 2025', 'Rs.8,500/mo', 'Upcoming'],
-  ['Urban Living PG', '10 Jan 2025', '10 Jul 2025', 'Rs.7,500/mo', 'Active'],
-  ['Nestora Central', '04 Mar 2024', '04 Sep 2024', 'Rs.8,200/mo', 'Completed'],
-  ['Green Home Co-Living', '18 Apr 2024', '18 Oct 2024', 'Rs.9,000/mo', 'Cancelled'],
+  ['Nestora Heights', '25 May 2025', '25 Nov 2025', '$8,500/mo', 'Upcoming'],
+  ['Urban Living PG', '10 Jan 2025', '10 Jul 2025', '$7,500/mo', 'Active'],
+  ['Nestora Central', '04 Mar 2024', '04 Sep 2024', '$8,200/mo', 'Completed'],
+  ['Green Home Co-Living', '18 Apr 2024', '18 Oct 2024', '$9,000/mo', 'Cancelled'],
 ]
 
 export const testimonials = [

@@ -115,6 +115,13 @@ const propertySchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+
+    verificationStatus: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+      index: true,
+    },
   },
   {
     timestamps: true,

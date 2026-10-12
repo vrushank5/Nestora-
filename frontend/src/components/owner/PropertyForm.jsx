@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, Plus } from 'lucide-react'
 import ImageUploader from './ImageUploader.jsx'
 
 const STANDARD_AMENITIES = ['Wi-Fi', 'AC', 'Laundry', 'Food', 'Parking', 'CCTV', 'Power Backup', 'Cleaning']
@@ -10,13 +11,15 @@ export default function PropertyForm({
   onCancel,
   isSubmitting = false,
   submitLabel = 'Save Property',
+  applyUpdatedDefaults = false,
 }) {
+  const editedDefaults = useRef({ city: false, gender: false })
   const [formData, setFormData] = useState({
     name: initialData.name || '',
     city: initialData.city || 'Ahmedabad',
     area: initialData.area || '',
     location: initialData.location || '',
-    price: initialData.price || '₹',
+    price: initialData.price ? String(initialData.price).replace(/₹|Rs\.?/g, '$') : '$',
     priceValue: initialData.priceValue !== undefined ? String(initialData.priceValue) : '',
     securityDeposit: initialData.securityDeposit !== undefined ? String(initialData.securityDeposit) : '0',
     gender: initialData.gender || 'Unisex',
@@ -24,6 +27,16 @@ export default function PropertyForm({
     description: initialData.description || '',
     isActive: initialData.isActive !== false,
   })
+
+  useEffect(() => {
+    if (!applyUpdatedDefaults) return
+
+    setFormData((current) => ({
+      ...current,
+      city: editedDefaults.current.city ? current.city : (initialData.city || current.city),
+      gender: editedDefaults.current.gender ? current.gender : (initialData.gender || current.gender),
+    }))
+  }, [applyUpdatedDefaults, initialData.city, initialData.gender])
 
   const [amenities, setAmenities] = useState(
     Array.isArray(initialData.amenities) ? initialData.amenities : ['Wi-Fi', 'AC']
@@ -47,7 +60,7 @@ export default function PropertyForm({
     setFormData((prev) => ({
       ...prev,
       priceValue: val,
-      price: val ? `₹${num.toLocaleString('en-IN')}/month` : '',
+      price: val ? `$${num.toLocaleString('en-US')}/month` : '',
     }))
   }
 
@@ -98,7 +111,7 @@ export default function PropertyForm({
     if (!validate()) return
 
     const numericPrice = Number(formData.priceValue)
-    const formattedPrice = formData.price.trim() || `₹${numericPrice.toLocaleString('en-IN')}/month`
+    const formattedPrice = formData.price.trim().replace(/₹|Rs\.?/g, '$') || `$${numericPrice.toLocaleString('en-US')}/month`
     const numericSecurityDeposit = Number(formData.securityDeposit)
 
     // If local files are attached, construct FormData
@@ -171,7 +184,10 @@ export default function PropertyForm({
             <select
               className="owner-select"
               value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              onChange={(e) => {
+                editedDefaults.current.gender = true
+                setFormData({ ...formData, gender: e.target.value })
+              }}
             >
               <option value="Unisex">Unisex / All</option>
               <option value="Male">Male Only</option>
@@ -190,7 +206,10 @@ export default function PropertyForm({
               type="text"
               className="owner-input"
               value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              onChange={(e) => {
+                editedDefaults.current.city = true
+                setFormData({ ...formData, city: e.target.value })
+              }}
             />
           </div>
 
@@ -229,12 +248,12 @@ export default function PropertyForm({
         <div className="form-grid-3">
           <div className="form-group">
             <label className="form-label">
-              Price Amount (₹/mo) <span className="req">*</span>
+              Price Amount ($/mo) <span className="req">*</span>
             </label>
             <input
               type="number"
               className={`owner-input ${errors.priceValue ? 'input-error' : ''}`}
-              placeholder="e.g. 9000"
+              placeholder="e.g. 500"
               value={formData.priceValue}
               onChange={(e) => handlePriceValueChange(e.target.value)}
             />
@@ -242,11 +261,11 @@ export default function PropertyForm({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Security Deposit (₹)</label>
+            <label className="form-label">Security Deposit ($)</label>
             <input
               type="number"
               className="owner-input"
-              placeholder="e.g. 18000"
+              placeholder="e.g. 1000"
               min="0"
               value={formData.securityDeposit}
               onChange={(e) => setFormData({ ...formData, securityDeposit: e.target.value })}
@@ -258,7 +277,7 @@ export default function PropertyForm({
             <input
               type="text"
               className="owner-input"
-              placeholder="e.g. ₹9,000/month"
+              placeholder="e.g. $500/month"
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             />
@@ -290,8 +309,10 @@ export default function PropertyForm({
               className={`chip-button ${amenities.includes(am) ? 'active' : ''}`}
               onClick={() => toggleAmenity(am)}
             >
-              {amenities.includes(am) ? '✓ ' : '+ '}
-              {am}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                {amenities.includes(am) ? <Check size={14} /> : <Plus size={14} />}
+                {am}
+              </span>
             </button>
           ))}
           {amenities
@@ -303,7 +324,10 @@ export default function PropertyForm({
                 className="chip-button active custom-chip"
                 onClick={() => toggleAmenity(am)}
               >
-                ✓ {am}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Check size={14} />
+                  {am}
+                </span>
               </button>
             ))}
         </div>
@@ -337,8 +361,10 @@ export default function PropertyForm({
               className={`chip-button ${roomTypes.includes(rt) ? 'active' : ''}`}
               onClick={() => toggleRoomType(rt)}
             >
-              {roomTypes.includes(rt) ? '✓ ' : '+ '}
-              {rt}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                {roomTypes.includes(rt) ? <Check size={14} /> : <Plus size={14} />}
+                {rt}
+              </span>
             </button>
           ))}
           {roomTypes
@@ -350,7 +376,10 @@ export default function PropertyForm({
                 className="chip-button active custom-chip"
                 onClick={() => toggleRoomType(rt)}
               >
-                ✓ {rt}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <Check size={14} />
+                  {rt}
+                </span>
               </button>
             ))}
         </div>

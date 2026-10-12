@@ -11,6 +11,7 @@ import {
   Users,
   Tag,
   Calendar,
+  Check,
 } from 'lucide-react'
 import OwnerPropertyGallery from '../../../components/owner/OwnerPropertyGallery.jsx'
 import { propertyService } from '../../../services/propertyService.js'
@@ -156,7 +157,7 @@ export default function PropertyDetail() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div className="detail-price-box">
             <span>Starting Monthly Rent</span>
-            <strong>{property.price || `₹${(property.priceValue || 0).toLocaleString('en-IN')}/mo`}</strong>
+            <strong>{property.price ? String(property.price).replace(/₹|Rs\.?/g, '$') : `$${(property.priceValue || 0).toLocaleString('en-US')}/mo`}</strong>
           </div>
 
           <div className="detail-info-card">
@@ -218,7 +219,10 @@ export default function PropertyDetail() {
               {Array.isArray(property.amenities) && property.amenities.length > 0 ? (
                 property.amenities.map((am, i) => (
                   <span key={i} className="chip-button active">
-                    ✓ {am}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Check size={14} />
+                      {am}
+                    </span>
                   </span>
                 ))
               ) : (

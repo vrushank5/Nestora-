@@ -2,6 +2,8 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useAuth } from '../context/useAuth.js'
 
+import AppLoader from './AppLoader.jsx'
+
 function ProtectedRoute({ allowedRoles, children }) {
   const location = useLocation()
   const { authChecking, isAuthenticated, user } = useAuth()
@@ -10,10 +12,10 @@ function ProtectedRoute({ allowedRoles, children }) {
     [location.hash, location.pathname, location.search],
   )
 
-  // While the auth state is still being determined, render nothing.
+  // While the auth state is still being determined, show the loader.
   // This prevents a flash of the login redirect before the token is validated.
   if (authChecking) {
-    return null
+    return <AppLoader message="Verifying session..." />
   }
 
   if (!isAuthenticated) {

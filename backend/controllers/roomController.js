@@ -292,9 +292,30 @@ const getOwnerRooms = async (req, res) => {
 const getAdminRooms = async (req, res) => {
   try {
     const rooms = await Room.find().sort({ propertyId: 1, roomId: -1 }).lean();
+    const propertyIds = [...new Set(rooms.map((r) => r.propertyId))];
+    const properties = await Property.find({ propertyId: { $in: propertyIds } })
+      .select("propertyId name title")
+      .lean();
+
+    const propertyMap = properties.reduce((acc, p) => {
+      acc[p.propertyId] = p.name || p.title || `Property #${p.propertyId}`;
+      return acc;
+    }, {});
+
+    const formattedRooms = rooms.map((r) => ({
+      ...r,
+      id: r._id || r.roomId,
+      property: propertyMap[r.propertyId] || `Property #${r.propertyId}`,
+      roomNo: r.roomNumber,
+      rent: r.price,
+      beds: r.capacity,
+      availableBeds: r.availableCount !== undefined ? r.availableCount : r.capacity,
+      type: r.roomType,
+    }));
+
     return res.status(200).json({
       success: true,
-      data: rooms,
+      data: formattedRooms,
     });
   } catch (error) {
     console.error("Get admin rooms error:", error);

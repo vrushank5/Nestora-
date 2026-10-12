@@ -94,7 +94,7 @@ export default function OwnerPropertyCard({ property, onView, onEdit, onDelete }
         <div className="property-card-footer">
           <div className="rent-info">
             <span>Price</span>
-            <strong>{property.price || `₹${(property.priceValue || 0).toLocaleString('en-IN')}/mo`}</strong>
+            <strong>{property.price ? String(property.price).replace('Rs.', '$').replace('₹', '$') : `$${(property.priceValue || 0).toLocaleString('en-US')}/mo`}</strong>
           </div>
 
           <div className="card-actions">

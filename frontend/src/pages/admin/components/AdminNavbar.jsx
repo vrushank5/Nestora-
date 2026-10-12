@@ -5,6 +5,9 @@ import {
   Menu, Search, Bell, BadgeCheck, HelpCircle, User, Settings, Activity, LogOut, ChevronDown, CheckCircle2, AlertTriangle
 } from 'lucide-react'
 
+import { apiRequest } from '../../../services/api.js'
+import ThemeToggle from '../../../components/ThemeToggle.jsx'
+
 const sampleNotifications = [
   { id: 1, text: '18 properties waiting for verification', time: '10 mins ago', type: 'verification', alert: true },
   { id: 2, text: '12 new booking issues reported', time: '1 hour ago', type: 'booking', alert: false },
@@ -16,8 +19,21 @@ export default function AdminNavbar({ user, onToggleSidebar, onLogout }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [showNotifMenu, setShowNotifMenu] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [pendingVerificationsCount, setPendingVerificationsCount] = useState(0)
   const notifRef = useRef(null)
   const profileRef = useRef(null)
+
+  useEffect(() => {
+    let active = true
+    apiRequest('/admin/summary')
+      .then(res => {
+        if (active && res.data) {
+          setPendingVerificationsCount(res.data.pendingProperties ?? 0)
+        }
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'A'
 
@@ -58,10 +74,11 @@ export default function AdminNavbar({ user, onToggleSidebar, onLogout }) {
 
       {/* Right side */}
       <div className="admin-navbar-right">
+        <ThemeToggle />
         {/* Verification Alert Badge */}
-        <Link to="/admin/properties/verification" className="admin-verification-pill" title="18 Pending Verifications">
+        <Link to="/admin/properties/verification" className="admin-verification-pill" title={`${pendingVerificationsCount} Pending Verifications`}>
           <BadgeCheck size={16} />
-          <span>18 Pending Verifications</span>
+          <span>{pendingVerificationsCount} Pending Verifications</span>
         </Link>
 
         {/* Notifications */}

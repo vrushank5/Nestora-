@@ -1,4 +1,5 @@
-import { Sparkles, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
+import NestoraLogo from './NestoraLogo.jsx'
 
 function DashboardShell({ label, user, navItems, activeTab, onTabChange, onLogout, children }) {
   return (
@@ -6,11 +7,7 @@ function DashboardShell({ label, user, navItems, activeTab, onTabChange, onLogou
       <aside className="dashboard-sidebar">
         <div className="sidebar-top">
           <div className="brand-logo dashboard-brand">
-            <span className="brand-mark"><Sparkles size={18} /></span>
-            <span>
-              <strong>NESTORA</strong>
-              <small>{label}</small>
-            </span>
+            <NestoraLogo variant="sidebar" subtitle={label} />
           </div>
 
           <div className="sidebar-profile">

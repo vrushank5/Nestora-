@@ -120,7 +120,7 @@
 /* Navbar */
 .owner-navbar {
   height: 70px;
-  background-color: var(--white);
+  background-color: var(--surface);
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
@@ -239,7 +239,7 @@
   top: 100%;
   right: 0;
   margin-top: 10px;
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-md);
@@ -311,7 +311,7 @@
 }
 
 .owner-stat-card {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 24px;
@@ -385,7 +385,7 @@
 
 .dashboard-chart-pane,
 .dashboard-list-pane {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 24px;
@@ -507,7 +507,7 @@
   gap: 24px;
 }
 .owner-property-card {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
@@ -641,7 +641,7 @@
   justify-content: center;
   text-align: center;
   padding: 60px 20px;
-  background: var(--white);
+  background: var(--surface);
   border: 1px dashed var(--line);
   border-radius: var(--radius);
   margin-top: 20px;
@@ -721,7 +721,7 @@
 .text-muted { color: var(--muted); }
 
 .owner-table-wrapper {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
@@ -855,7 +855,7 @@
   justify-content: center;
   padding: 60px 20px;
   text-align: center;
-  background: var(--white);
+  background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--line);
 }
@@ -932,7 +932,7 @@
 }
 
 .gallery-nav-btn:hover {
-  background: var(--white);
+  background: var(--surface);
   scale: 1.05;
 }
 
@@ -1043,7 +1043,7 @@
 .dropzone-box {
   position: relative;
   border: 2px dashed var(--line);
-  background: var(--white);
+  background: var(--surface);
   border-radius: var(--radius);
   padding: 32px 20px;
   display: flex;
@@ -1132,7 +1132,7 @@
 
 /* Property Form & Chips */
 .property-form-card {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 32px;
@@ -1173,7 +1173,7 @@
 
 .owner-input:focus, .owner-textarea:focus, .owner-select:focus {
   border-color: var(--jade);
-  background: var(--white);
+  background: var(--surface);
 }
 
 .input-error {
@@ -1294,7 +1294,7 @@
 }
 
 .detail-header-card {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 24px 32px;
@@ -1329,7 +1329,7 @@
 }
 
 .detail-info-card {
-  background: var(--white);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 28px;
@@ -1363,7 +1363,7 @@
 }
 
 .modal-dialog {
-  background: var(--white);
+  background: var(--surface);
   border-radius: var(--radius);
   border: 1px solid var(--line);
   padding: 28px;
@@ -1396,3 +1396,192 @@
 .stat-icon.icon-terracotta { background: rgba(200, 93, 71, 0.1); color: var(--terracotta); }
 .stat-icon.icon-steel { background: rgba(49, 86, 108, 0.1); color: var(--steel); }
 .stat-icon.icon-gold { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+
+/* Owner account settings */
+.owner-settings-page {
+  max-width: 1040px;
+}
+
+.owner-settings-notice {
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 650;
+}
+
+.owner-settings-notice.success {
+  border-color: rgba(37, 116, 81, 0.35);
+  color: var(--success);
+}
+
+.owner-settings-notice.error {
+  border-color: rgba(180, 71, 53, 0.4);
+  color: var(--error);
+}
+
+.owner-settings-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.owner-settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.owner-settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-2);
+  text-align: left;
+  font-weight: 700;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.owner-settings-tab:hover,
+.owner-settings-tab.active {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+
+.owner-settings-tab.active {
+  box-shadow: inset 3px 0 0 var(--jade);
+}
+
+.owner-settings-content {
+  min-width: 0;
+}
+
+.owner-settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  padding: 24px;
+}
+
+.owner-settings-card h2 {
+  font-family: var(--font-body);
+  font-size: 1.12rem;
+}
+
+.owner-settings-description {
+  margin-top: -10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.owner-settings-fields {
+  display: grid;
+  gap: 18px;
+}
+
+.owner-settings-options {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+
+.owner-settings-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 2px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.owner-settings-option > span,
+.owner-settings-session > div {
+  display: grid;
+  gap: 4px;
+}
+
+.owner-settings-option strong,
+.owner-settings-session strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.owner-settings-option small,
+.owner-settings-session small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.owner-settings-option input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--jade);
+}
+
+.owner-settings-divider {
+  width: 100%;
+  height: 1px;
+  margin: 8px 0;
+  background: var(--line);
+}
+
+.owner-settings-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+}
+
+.owner-settings-session .ghost-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+@media (max-width: 760px) {
+  .owner-settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .owner-settings-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .owner-settings-tab {
+    padding: 11px 10px;
+    font-size: 0.84rem;
+  }
+
+  .owner-settings-card {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 440px) {
+  .owner-settings-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-settings-session {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

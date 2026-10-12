@@ -11,6 +11,7 @@ export default function OwnerLayout() {
   return (
     <div className="owner-layout">
       <OwnerSidebar 
+        user={user}
         isOpen={sidebarOpen} 
         setIsOpen={setSidebarOpen} 
         onLogout={logout} 

@@ -55,11 +55,10 @@ const roomSchema = new mongoose.Schema(
 );
 
 // Pre-save hook to calculate availableCount if not explicitly specified
-roomSchema.pre("save", function (next) {
+roomSchema.pre("save", function () {
   if (this.availableCount === undefined || this.availableCount === null) {
     this.availableCount = Math.max(0, this.capacity - (this.occupiedCount || 0));
   }
-  next();
 });
 
 module.exports = mongoose.model("Room", roomSchema, "room");

@@ -26,6 +26,7 @@ import heroImage from '../assets/hero.png'
 import { apiRequest } from '../services/api.js'
 
 const cities = ['Ahmedabad', 'Bengaluru', 'Mumbai', 'Pune', 'Delhi', 'Hyderabad']
+const propertyFallbackImages = [homeImages.residenceA, homeImages.residenceB, homeImages.residenceC, homeImages.residenceD]
 
 const benefits = [
   [ShieldCheck, 'Verified before discovery', 'Every visible home is presented as a screened listing with essential stay details up front.'],
@@ -50,7 +51,7 @@ function Reveal({ children, className = '' }) {
 
 function Home() {
   const navigate = useNavigate()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [budget, setBudget] = useState('Any budget')
   const [roomType, setRoomType] = useState('Any room')
@@ -86,7 +87,7 @@ function Home() {
       try {
         const data = await apiRequest('/properties', { token: null })
         const items = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
-        setResidences(items.map((property) => ({
+        setResidences(items.map((property, index) => ({
           id: property.propertyId ?? property.id,
           slug: property.slug ?? property.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
           name: property.name,
@@ -95,14 +96,14 @@ function Home() {
           location: property.location,
           rating: property.rating ?? '4.5',
           reviews: property.reviews ?? 'New',
-          price: property.price,
+          price: property.price ? String(property.price).replace(/₹|Rs\.?/g, '$') : `$${Number(property.priceValue || 0).toLocaleString('en-US')}/month`,
           priceValue: Number(property.priceValue ?? 0),
           amenities: Array.isArray(property.amenities) ? property.amenities : ['Wi-Fi'],
           roomTypes: Array.isArray(property.roomTypes) ? property.roomTypes : ['Single'],
           gender: property.gender ?? 'Unisex',
           occupancy: property.occupancy ?? 'Available',
           description: property.description ?? 'Managed stay with essential amenities.',
-          image: property.image || homeImages.residenceA,
+          image: property.image || propertyFallbackImages[index % propertyFallbackImages.length],
         })))
       } catch (error) {
         console.warn('Property load failed:', error.message)
@@ -127,6 +128,27 @@ function Home() {
   const handleSearchSubmit = (event) => {
     event.preventDefault()
     goToExplorer()
+  }
+
+  const handleResidenceDetails = (residence) => {
+    if (!residence) return
+
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+
+    if (Number(user?.roleId) === 2) {
+      navigate('/owner/dashboard')
+      return
+    }
+
+    if (residence.id) {
+      navigate(`/resident/property/${residence.id}`)
+      return
+    }
+
+    goToExplorer({ filterLocation: residence.area })
   }
 
   return (
@@ -255,7 +277,7 @@ function Home() {
               <Reveal key={residence.id}>
                 <PropertyCard
                   residence={residence}
-                  onView={() => goToExplorer({ filterLocation: residence.area })}
+                  onView={() => handleResidenceDetails(residence)}
                   onSave={() => goToExplorer({ filterLocation: residence.area })}
                 />
               </Reveal>

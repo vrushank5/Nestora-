@@ -1,9 +1,12 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, UserCheck, ShieldAlert, Building2, BadgeCheck,
   DoorOpen, BookOpen, CreditCard, CalendarDays, AlertTriangle, Star,
   Bell, FileText, HelpCircle, TrendingUp, BarChart3, Settings, User, LogOut, X, Shield
 } from 'lucide-react'
+import { apiRequest } from '../../../services/api.js'
+import NestoraLogo from '../../../components/NestoraLogo.jsx'
 
 const adminNavGroups = [
   {
@@ -24,7 +27,7 @@ const adminNavGroups = [
     title: 'PROPERTY MANAGEMENT',
     items: [
       { id: 'properties', label: 'Properties', icon: Building2, path: '/admin/properties' },
-      { id: 'verification', label: 'Verification Requests', icon: BadgeCheck, path: '/admin/properties/verification', badge: '18' },
+      { id: 'verification', label: 'Verification Requests', icon: BadgeCheck, path: '/admin/properties/verification' },
       { id: 'rooms', label: 'Rooms', icon: DoorOpen, path: '/admin/rooms' },
     ],
   },
@@ -70,18 +73,36 @@ const adminNavGroups = [
 export default function AdminSidebar({ user, isOpen, setIsOpen, onLogout }) {
   const location = useLocation()
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'A'
+  const [summary, setSummary] = useState({})
+
+  useEffect(() => {
+    let active = true
+    apiRequest('/admin/summary')
+      .then(response => {
+        if (active) setSummary(response.data || {})
+      })
+      .catch(() => {
+        if (active) setSummary({})
+      })
+    return () => { active = false }
+  }, [])
+
+  const badgeCounts = {
+    verification: summary.pendingProperties,
+    complaints: summary.complaints,
+    bookings: summary.bookings,
+    payments: summary.pendingPayments,
+    visits: summary.visits,
+    reviews: summary.pendingReviews,
+  }
 
   return (
     <aside className={`admin-sidebar ${isOpen ? 'open' : ''}`}>
       {/* Sidebar Header */}
       <div className="admin-sidebar-head">
-        <div className="brand-logo admin-brand">
-          <span className="brand-mark admin-mark"><Shield size={18} /></span>
-          <span>
-            <strong>NESTORA</strong>
-            <small>ADMIN PANEL</small>
-          </span>
-        </div>
+        <Link to="/admin/dashboard" className="brand-logo admin-brand" style={{ textDecoration: 'none' }}>
+          <NestoraLogo variant="sidebar" subtitle="ADMIN PANEL" />
+        </Link>
         <button className="admin-sidebar-close" onClick={() => setIsOpen(false)} aria-label="Close sidebar">
           <X size={18} />
         </button>
@@ -113,9 +134,9 @@ export default function AdminSidebar({ user, isOpen, setIsOpen, onLogout }) {
                 >
                   <item.icon size={17} />
                   <span>{item.label}</span>
-                  {item.badge && (
+                  {(badgeCounts[item.id] !== undefined || item.badge) && (
                     <span className={`admin-nav-badge ${item.alert ? 'alert' : ''}`}>
-                      {item.badge}
+                      {badgeCounts[item.id] ?? item.badge}
                     </span>
                   )}
                 </Link>

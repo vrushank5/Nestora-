@@ -1,29 +1,29 @@
 const TOKEN_KEY = 'nestora_token'
 const USER_KEY = 'nestora_user'
 
-export const getToken = () => localStorage.getItem(TOKEN_KEY)
+export const getToken = () => sessionStorage.getItem(TOKEN_KEY)
 
 export const getCurrentUser = () => {
-  const storedUser = localStorage.getItem(USER_KEY)
+  const storedUser = sessionStorage.getItem(USER_KEY)
 
   if (!storedUser) return null
 
   try {
     return JSON.parse(storedUser)
   } catch {
-    localStorage.removeItem(USER_KEY)
+    sessionStorage.removeItem(USER_KEY)
     return null
   }
 }
 
 export const saveAuthSession = ({ token, user }) => {
-  localStorage.setItem(TOKEN_KEY, token)
-  localStorage.setItem(USER_KEY, JSON.stringify(user))
+  sessionStorage.setItem(TOKEN_KEY, token)
+  sessionStorage.setItem(USER_KEY, JSON.stringify(user))
 }
 
 export const clearAuthSession = () => {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(USER_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(USER_KEY)
 }
 
 export const isAuthenticated = () => Boolean(getToken() && getCurrentUser())

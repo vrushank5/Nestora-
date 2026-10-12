@@ -1,52 +1,129 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Users, UserCheck, ShieldAlert, Building2, TrendingUp, DollarSign, BadgeCheck,
-  AlertTriangle, ArrowUpRight, ArrowDownRight, Shield, CheckCircle2, Server, MapPin, Star,
-  Eye, Check, X, Bell
+  Activity,
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowUpRight,
+  BadgeCheck,
+  Bell,
+  BookOpen,
+  Building2,
+  CheckCircle2,
+  ChevronRight,
+  CircleDollarSign,
+  Clock3,
+  Database,
+  DoorOpen,
+  Download,
+  Eye,
+  MapPin,
+  MoreHorizontal,
+  SearchCheck,
+  Server,
+  Shield,
+  ShieldAlert,
+  Sparkles,
+  Star,
+  UserCheck,
+  Users,
+  WalletCards,
+  XCircle,
 } from 'lucide-react'
 import { residences } from '../../data/homeData.js'
 import { getToken } from '../../context/authStorage.js'
 
+const numberFormat = new Intl.NumberFormat('en-IN')
+
+const ranges = ['7 Days', '30 Days', '90 Days', '1 Year']
+
 const statCards = [
-  { id: 'users', label: 'TOTAL USERS', value: '2,480', change: '+12%', positive: true, icon: Users, color: 'var(--jade)', bg: 'rgba(10,111,91,0.1)' },
-  { id: 'residents', label: 'ACTIVE RESIDENTS', value: '1,820', change: '+8%', positive: true, icon: UserCheck, color: 'var(--steel)', bg: 'rgba(49,86,108,0.1)' },
-  { id: 'owners', label: 'PROPERTY OWNERS', value: '186', change: '+15%', positive: true, icon: ShieldAlert, color: '#9b6817', bg: 'rgba(229,168,67,0.1)' },
-  { id: 'properties', label: 'TOTAL PROPERTIES', value: '324', change: '+5%', positive: true, icon: Building2, color: 'var(--jade)', bg: 'rgba(10,111,91,0.1)' },
-  { id: 'occupancy', label: 'OCCUPANCY', value: '87%', change: '+3%', positive: true, icon: TrendingUp, color: 'var(--jade)', bg: 'rgba(10,111,91,0.1)' },
-  { id: 'revenue', label: 'MONTHLY REVENUE', value: '₹24,85,000', change: '+14%', positive: true, icon: DollarSign, color: 'var(--jade)', bg: 'rgba(10,111,91,0.1)' },
-  { id: 'verifications', label: 'PENDING VERIFICATIONS', value: '18', change: '-4%', positive: false, alert: true, icon: BadgeCheck, color: 'var(--terracotta)', bg: 'rgba(200,93,71,0.1)' },
-  { id: 'complaints', label: 'OPEN COMPLAINTS', value: '27', change: '-2%', positive: false, alert: true, icon: AlertTriangle, color: 'var(--terracotta)', bg: 'rgba(200,93,71,0.1)' },
+  { id: 'users', label: 'Total Users', value: '2,480', change: '+12.4%', helper: 'Residents, owners, admins', icon: Users, tone: 'jade', positive: true },
+  { id: 'residents', label: 'Active Residents', value: '1,820', change: '+8.1%', helper: 'Live resident accounts', icon: UserCheck, tone: 'steel', positive: true },
+  { id: 'owners', label: 'Property Owners', value: '186', change: '+15.2%', helper: 'Verified partners', icon: ShieldAlert, tone: 'saffron', positive: true },
+  { id: 'properties', label: 'PG Properties', value: '324', change: '+5.7%', helper: 'Published and pending', icon: Building2, tone: 'jade', positive: true },
+  { id: 'occupancy', label: 'Occupancy Rate', value: '87%', change: '+3.2%', helper: 'Across tracked beds', icon: DoorOpen, tone: 'steel', positive: true },
+  { id: 'revenue', label: 'Monthly Revenue', value: 'Rs. 24.85L', change: '+14.8%', helper: 'Confirmed payments', icon: CircleDollarSign, tone: 'jade', positive: true },
+  { id: 'verifications', label: 'Pending Checks', value: '18', change: '-4.0%', helper: 'Need document review', icon: BadgeCheck, tone: 'terracotta', positive: false, alert: true },
+  { id: 'complaints', label: 'Open Complaints', value: '27', change: '-2.3%', helper: 'Awaiting response', icon: AlertTriangle, tone: 'terracotta', positive: false, alert: true },
 ]
+
+const chartDataByRange = {
+  '7 Days': [
+    { label: 'Mon', revenue: 52, users: 36, bookings: 24 },
+    { label: 'Tue', revenue: 61, users: 42, bookings: 34 },
+    { label: 'Wed', revenue: 48, users: 39, bookings: 28 },
+    { label: 'Thu', revenue: 72, users: 54, bookings: 42 },
+    { label: 'Fri', revenue: 78, users: 59, bookings: 48 },
+    { label: 'Sat', revenue: 84, users: 68, bookings: 56 },
+    { label: 'Sun', revenue: 69, users: 51, bookings: 39 },
+  ],
+  '30 Days': [
+    { label: 'W1', revenue: 62, users: 46, bookings: 32 },
+    { label: 'W2', revenue: 78, users: 58, bookings: 44 },
+    { label: 'W3', revenue: 91, users: 72, bookings: 61 },
+    { label: 'W4', revenue: 100, users: 82, bookings: 70 },
+  ],
+  '90 Days': [
+    { label: 'Apr', revenue: 64, users: 44, bookings: 38 },
+    { label: 'May', revenue: 76, users: 61, bookings: 49 },
+    { label: 'Jun', revenue: 82, users: 66, bookings: 55 },
+    { label: 'Jul', revenue: 96, users: 78, bookings: 68 },
+    { label: 'Aug', revenue: 88, users: 73, bookings: 63 },
+    { label: 'Sep', revenue: 100, users: 86, bookings: 76 },
+  ],
+  '1 Year': [
+    { label: 'Q1', revenue: 58, users: 44, bookings: 35 },
+    { label: 'Q2', revenue: 74, users: 59, bookings: 51 },
+    { label: 'Q3', revenue: 90, users: 73, bookings: 66 },
+    { label: 'Q4', revenue: 100, users: 84, bookings: 78 },
+  ],
+}
 
 const alertCenterItems = [
-  { id: 1, text: '18 Properties waiting for verification', tag: 'High Priority', path: '/admin/properties/verification' },
-  { id: 2, text: '27 Unresolved complaints requiring attention', tag: 'Action Needed', path: '/admin/complaints' },
-  { id: 3, text: '6 Reported reviews flagged by users', tag: 'Moderation', path: '/admin/reviews' },
-  { id: 4, text: '12 Payment issues reported in last 24h', tag: 'Financial', path: '/admin/payments' },
+  { id: 1, text: '18 properties waiting for verification', tag: 'High Priority', path: '/admin/properties/verification', icon: BadgeCheck },
+  { id: 2, text: '27 complaints need owner follow-up', tag: 'Action Needed', path: '/admin/complaints', icon: AlertTriangle },
+  { id: 3, text: '6 reviews are flagged for moderation', tag: 'Moderation', path: '/admin/reviews', icon: Star },
+  { id: 4, text: '12 payments need manual reconciliation', tag: 'Financial', path: '/admin/payments', icon: WalletCards },
 ]
 
-const smartAlerts = [
-  '⚠ Occupancy dropped below 60% at Green Home Co-Living.',
-  '⚠ Property "Urban Living PG" has unusually high complaints this week.',
-  '⚠ Multiple residents reported water supply issues in Bodakdev region.',
-  '⚠ Payment failure rate increased by 1.2% in Surat region.',
+const orders = [
+  { id: 'BK-1082', guest: 'Aarav Mehta', property: 'Green Home Co-Living', amount: 'Rs. 18,500', status: 'approved', time: '12 min ago' },
+  { id: 'BK-1081', guest: 'Nisha Patel', property: 'Urban Living PG', amount: 'Rs. 14,200', status: 'pending', time: '38 min ago' },
+  { id: 'BK-1079', guest: 'Rahul Shah', property: 'Prime Nest PG', amount: 'Rs. 21,000', status: 'completed', time: '2 hr ago' },
+  { id: 'BK-1075', guest: 'Meera Iyer', property: 'City Stay Hostel', amount: 'Rs. 11,900', status: 'cancelled', time: '4 hr ago' },
+]
+
+const activityFeed = [
+  { id: 1, title: 'Owner submitted new KYC documents', meta: 'Urban Living PG, Bodakdev', time: '8 min ago', icon: SearchCheck, tone: 'jade' },
+  { id: 2, title: 'Payment gateway retry succeeded', meta: 'Invoice PAY-8821 cleared', time: '24 min ago', icon: CheckCircle2, tone: 'steel' },
+  { id: 3, title: 'Water supply complaint escalated', meta: 'Green Home Co-Living', time: '1 hr ago', icon: AlertTriangle, tone: 'terracotta' },
+  { id: 4, title: 'New resident booking created', meta: 'Double sharing room, Ahmedabad', time: '2 hr ago', icon: BookOpen, tone: 'saffron' },
 ]
 
 const platformHealth = [
-  { service: 'API Backend Server', status: 'Operational', color: 'var(--jade)' },
-  { service: 'PostgreSQL Database', status: 'Operational', color: 'var(--jade)' },
-  { service: 'Razorpay Payment Gateway', status: 'Operational', color: 'var(--jade)' },
-  { service: 'Email Notification Service', status: 'Operational', color: 'var(--jade)' },
-  { service: 'Cloudinary Image CDN', status: 'Operational', color: 'var(--jade)' },
+  { service: 'API Backend Server', status: 'Operational', load: '42ms', color: 'var(--jade)' },
+  { service: 'PostgreSQL Database', status: 'Operational', load: '21ms', color: 'var(--jade)' },
+  { service: 'Payment Gateway', status: 'Operational', load: '99.9%', color: 'var(--jade)' },
+  { service: 'Email Notifications', status: 'Queued', load: '14 jobs', color: 'var(--saffron)' },
 ]
 
 const cityStats = [
-  { city: 'Ahmedabad', properties: 124, residents: '1,240', occupancy: '89%', revenue: '₹14.2L' },
-  { city: 'Surat', properties: 72, residents: '680', occupancy: '84%', revenue: '₹6.8L' },
-  { city: 'Vadodara', properties: 45, residents: '390', occupancy: '82%', revenue: '₹3.85L' },
+  { city: 'Ahmedabad', properties: 124, residents: '1,240', occupancy: 89, revenue: 'Rs. 14.2L' },
+  { city: 'Surat', properties: 72, residents: '680', occupancy: 84, revenue: 'Rs. 6.8L' },
+  { city: 'Vadodara', properties: 45, residents: '390', occupancy: 82, revenue: 'Rs. 3.85L' },
 ]
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.055 } },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] } },
+}
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -54,221 +131,323 @@ export default function AdminDashboard() {
   const [summary, setSummary] = useState({})
 
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/summary`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    let ignore = false
+
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/summary`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
       .then(response => response.json())
-      .then(result => setSummary(result.data || {}))
+      .then(result => {
+        if (!ignore) setSummary(result.data || {})
+      })
+      .catch(() => {
+        if (!ignore) setSummary({})
+      })
+
+    return () => {
+      ignore = true
+    }
   }, [])
 
-  const dynamicStatCards = statCards.map(card => ({
-    ...card,
-    value: card.id === 'users' ? summary.totalUsers ?? '...' : card.id === 'residents' ? summary.residents ?? '...' : card.id === 'owners' ? summary.owners ?? '...' : card.id === 'properties' ? summary.properties ?? '...' : card.id === 'verifications' ? summary.pendingProperties ?? '...' : card.value,
-  }))
+  const dynamicStatCards = useMemo(() => statCards.map(card => {
+    const liveValue = {
+      users: summary.totalUsers,
+      residents: summary.residents,
+      owners: summary.owners,
+      properties: summary.properties,
+      verifications: summary.pendingProperties,
+    }[card.id]
+
+    return {
+      ...card,
+      value: liveValue !== undefined && liveValue !== null ? numberFormat.format(liveValue) : card.value,
+    }
+  }), [summary])
+
+  const chartData = chartDataByRange[chartRange]
+  const maxBarValue = Math.max(...chartData.flatMap(point => [point.revenue, point.users, point.bookings]))
 
   return (
-    <div className="admin-page">
-      {/* Header */}
-      <div className="admin-page-header">
-        <div>
-          <span className="admin-page-kicker"><Shield size={14} /> SYSTEM OVERVIEW</span>
-          <h1 className="admin-page-title">Good Morning, Admin</h1>
-          <p className="admin-page-subtitle">Here's an overview of what's happening across the Nestora platform.</p>
+    <motion.div className="admin-page admin-v7-page" variants={containerVariants} initial="hidden" animate="show">
+      <motion.div className="admin-v7-hero" variants={itemVariants}>
+        <div className="admin-v7-hero-copy">
+          <span className="admin-page-kicker"><Shield size={14} /> Admin Dashboard V7</span>
+          <h1 className="admin-page-title">Powerful, clean, interactive control center</h1>
+          <p className="admin-page-subtitle">
+            Monitor PG operations, users, orders, verification queues, payments, and platform health from one premium admin workspace.
+          </p>
+          <div className="admin-v7-hero-actions">
+            <Link to="/admin/properties/verification" className="primary-button compact-button">
+              <BadgeCheck size={16} /> Review Verifications
+            </Link>
+            <Link to="/admin/reports" className="ghost-button compact-button">
+              <Download size={16} /> Export Report
+            </Link>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <Link to="/admin/properties/verification" className="primary-button compact-button">
-            <BadgeCheck size={16} /> Review Verifications (18)
-          </Link>
-        </div>
-      </div>
 
-      {/* 8 Stats Grid with subtle 3D hover */}
-      <div className="admin-stats-grid">
-        {dynamicStatCards.map(s => (
+        <div className="admin-v7-command-card">
+          <div className="admin-v7-command-head">
+            <span><Sparkles size={15} /> Live command summary</span>
+            <MoreHorizontal size={18} />
+          </div>
+          <div className="admin-v7-command-grid">
+            <div>
+              <strong>87%</strong>
+              <span>Occupancy</span>
+            </div>
+            <div>
+              <strong>18</strong>
+              <span>Pending checks</span>
+            </div>
+            <div>
+              <strong>99.9%</strong>
+              <span>Uptime</span>
+            </div>
+          </div>
+          <div className="admin-v7-ops-meter">
+            <span style={{ width: '72%' }} />
+          </div>
+          <small>Operational load is stable. Payment queue needs review before evening settlement.</small>
+        </div>
+      </motion.div>
+
+      <motion.div className="admin-stats-grid admin-v7-stats-grid" variants={containerVariants}>
+        {dynamicStatCards.map(card => (
           <motion.div
-            key={s.id}
-            className={`admin-stat-card 3d-tilt-card ${s.alert ? 'alert-card' : ''}`}
-            whileHover={{ y: -4, boxShadow: '0 16px 32px rgba(18,34,31,0.12)' }}
+            key={card.id}
+            className={`admin-stat-card admin-v7-stat-card tone-${card.tone} ${card.alert ? 'alert-card' : ''}`}
+            variants={itemVariants}
+            whileHover={{ y: -5, scale: 1.01 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 22 }}
           >
-            <div className="admin-stat-icon" style={{ background: s.bg, color: s.color }}>
-              <s.icon size={20} />
+            <div className="admin-stat-icon">
+              <card.icon size={21} />
             </div>
             <div className="admin-stat-info">
-              <span className="admin-stat-label">{s.label}</span>
-              <h3 className="admin-stat-val">{s.value}</h3>
-              <span className={`admin-stat-trend ${s.positive ? 'up' : 'down'}`}>
-                {s.positive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />} {s.change} vs prev month
+              <span className="admin-stat-label">{card.label}</span>
+              <h3 className="admin-stat-val">{card.value}</h3>
+              <p>{card.helper}</p>
+              <span className={`admin-stat-trend ${card.positive ? 'up' : 'down'}`}>
+                {card.positive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+                {card.change} vs last month
               </span>
             </div>
           </motion.div>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Alert Center */}
-      <div className="admin-pane alert-center-pane" style={{ marginBottom: '24px' }}>
-        <div className="admin-pane-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="alert-icon-ring"><AlertTriangle size={18} /></div>
-            <div>
-              <h3>Alert Center</h3>
-              <p className="muted-copy" style={{ fontSize: '0.82rem' }}>Priority items requiring administrative review</p>
-            </div>
-          </div>
-          <Link to="/admin/properties/verification" className="admin-link">View All Alerts →</Link>
-        </div>
-        <div className="admin-alerts-grid">
-          {alertCenterItems.map(item => (
-            <div key={item.id} className="admin-alert-item">
-              <div>
-                <span className="admin-alert-tag">{item.tag}</span>
-                <p>⚠ {item.text}</p>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="primary-button compact-button" onClick={() => navigate(item.path)}>Review Now</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <motion.div className="admin-v7-priority-strip" variants={itemVariants}>
+        {alertCenterItems.map(item => (
+          <button key={item.id} className="admin-v7-priority-item" onClick={() => navigate(item.path)}>
+            <span className="admin-v7-priority-icon"><item.icon size={17} /></span>
+            <span>
+              <strong>{item.tag}</strong>
+              <small>{item.text}</small>
+            </span>
+            <ChevronRight size={16} />
+          </button>
+        ))}
+      </motion.div>
 
-      {/* Main Grid: Charts & Smart Alerts */}
-      <div className="admin-dashboard-grid" style={{ marginBottom: '24px' }}>
-        {/* Left: Charts */}
-        <div className="admin-pane">
+      <div className="admin-v7-main-grid">
+        <motion.section className="admin-pane admin-v7-analytics-pane" variants={itemVariants}>
           <div className="admin-pane-header">
             <div>
-              <h3>Platform Overview</h3>
-              <p className="muted-copy" style={{ fontSize: '0.82rem' }}>User & Revenue Growth trends</p>
+              <h3>Analytics & Statistics</h3>
+              <p className="muted-copy">Revenue, user growth, and booking volume trends</p>
             </div>
             <div className="admin-range-selector">
-              {['7 Days', '30 Days', '3 Months', '6 Months', '1 Year'].map(r => (
+              {ranges.map(range => (
                 <button
-                  key={r}
-                  className={`admin-range-btn ${chartRange === r ? 'active' : ''}`}
-                  onClick={() => setChartRange(r)}
+                  key={range}
+                  className={`admin-range-btn ${chartRange === range ? 'active' : ''}`}
+                  onClick={() => setChartRange(range)}
                 >
-                  {r}
+                  {range}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Bar Chart Visual */}
-          <div className="admin-chart-mock">
-            <div className="chart-legend">
-              <span><i style={{ background: 'var(--jade)' }} /> Revenue (₹ Lakhs)</span>
-              <span><i style={{ background: 'var(--steel)' }} /> New Users</span>
-              <span><i style={{ background: 'var(--saffron)' }} /> Bookings</span>
+          <div className="admin-v7-chart-shell">
+            <div className="admin-v7-chart-legend">
+              <span><i className="legend-revenue" /> Revenue</span>
+              <span><i className="legend-users" /> Users</span>
+              <span><i className="legend-bookings" /> Bookings</span>
             </div>
-            <div className="css-bar-chart">
-              {[
-                { label: 'Jan', val1: 65, val2: 45, val3: 35 },
-                { label: 'Feb', val1: 72, val2: 50, val3: 42 },
-                { label: 'Mar', val1: 80, val2: 60, val3: 50 },
-                { label: 'Apr', val1: 88, val2: 65, val3: 58 },
-                { label: 'May', val1: 95, val2: 75, val3: 68 },
-                { label: 'Jun', val1: 100, val2: 85, val3: 78 },
-              ].map(bar => (
-                <div key={bar.label} className="bar-group">
-                  <div className="bar-stack">
-                    <div className="b1" style={{ height: `${bar.val1}%` }} title={`Revenue: ₹${bar.val1}L`} />
-                    <div className="b2" style={{ height: `${bar.val2}%` }} title={`Users: ${bar.val2}`} />
+            <div className="admin-v7-bar-chart">
+              {chartData.map(point => (
+                <div key={point.label} className="admin-v7-bar-group">
+                  <div className="admin-v7-bar-stack">
+                    <motion.i
+                      className="revenue"
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(point.revenue / maxBarValue) * 100}%` }}
+                      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                      title={`Revenue: ${point.revenue}`}
+                    />
+                    <motion.i
+                      className="users"
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(point.users / maxBarValue) * 100}%` }}
+                      transition={{ duration: 0.55, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+                      title={`Users: ${point.users}`}
+                    />
+                    <motion.i
+                      className="bookings"
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(point.bookings / maxBarValue) * 100}%` }}
+                      transition={{ duration: 0.55, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                      title={`Bookings: ${point.bookings}`}
+                    />
                   </div>
-                  <span>{bar.label}</span>
+                  <span>{point.label}</span>
                 </div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.section>
 
-        {/* Right: Smart Alerts & Health */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Smart Alerts */}
-          <div className="admin-pane">
-            <h3 style={{ marginBottom: '14px' }}>Smart System Alerts</h3>
-            <div className="smart-alerts-list">
-              {smartAlerts.map((sa, i) => (
-                <div key={i} className="smart-alert-card">
-                  <p>{sa}</p>
-                </div>
-              ))}
+        <motion.aside className="admin-pane admin-v7-health-pane" variants={itemVariants}>
+          <div className="admin-pane-header">
+            <div>
+              <h3>Platform Health</h3>
+              <p className="muted-copy">PostgreSQL and service status</p>
             </div>
+            <Server size={18} />
           </div>
-
-          {/* Platform Health */}
-          <div className="admin-pane">
-            <h3 style={{ marginBottom: '14px' }}>Platform Health</h3>
-            <div className="platform-health-list">
-              {platformHealth.map(h => (
-                <div key={h.service} className="health-row">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Server size={14} color="var(--muted)" />
-                    <span style={{ fontSize: '0.86rem', fontWeight: 600 }}>{h.service}</span>
-                  </div>
-                  <span className="health-status-badge">
-                    <i style={{ background: h.color }} /> {h.status}
-                  </span>
+          <div className="platform-health-list">
+            {platformHealth.map(service => (
+              <div key={service.service} className="health-row admin-v7-health-row">
+                <div>
+                  <Database size={14} />
+                  <span>{service.service}</span>
                 </div>
-              ))}
-            </div>
+                <strong>{service.load}</strong>
+                <span className="health-status-badge">
+                  <i style={{ background: service.color }} /> {service.status}
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
+        </motion.aside>
       </div>
 
-      {/* City-wise Analytics & Verification Queue */}
-      <div className="admin-dashboard-grid">
-        {/* City-wise Analytics */}
-        <div className="admin-pane">
+      <div className="admin-v7-main-grid">
+        <motion.section className="admin-pane" variants={itemVariants}>
           <div className="admin-pane-header">
-            <h3>City-Wise Analytics</h3>
-            <Link to="/admin/analytics" className="admin-link">Full Report →</Link>
+            <div>
+              <h3>Orders & Activity</h3>
+              <p className="muted-copy">Recent bookings across your PG network</p>
+            </div>
+            <Link to="/admin/bookings" className="admin-link">View bookings</Link>
           </div>
-          <div className="owner-table-wrapper" style={{ boxShadow: 'none', border: 'none' }}>
-            <table className="owner-data-table">
-              <thead>
-                <tr>
-                  <th>City</th>
-                  <th>Properties</th>
-                  <th>Residents</th>
-                  <th>Occupancy</th>
-                  <th>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cityStats.map(c => (
-                  <tr key={c.city}>
-                    <td><strong><MapPin size={13} /> {c.city}</strong></td>
-                    <td>{c.properties}</td>
-                    <td>{c.residents}</td>
-                    <td><span className="status-badge active">{c.occupancy}</span></td>
-                    <td><strong>{c.revenue}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="admin-v7-orders">
+            {orders.map(order => (
+              <button key={order.id} className="admin-v7-order-row" onClick={() => navigate('/admin/bookings')}>
+                <span className="admin-v7-order-id">{order.id}</span>
+                <span>
+                  <strong>{order.guest}</strong>
+                  <small>{order.property}</small>
+                </span>
+                <strong>{order.amount}</strong>
+                <span className={`status-badge ${order.status}`}>{order.status}</span>
+                <small><Clock3 size={13} /> {order.time}</small>
+              </button>
+            ))}
           </div>
-        </div>
+        </motion.section>
 
-        {/* Verification Queue Preview */}
-        <div className="admin-pane">
+        <motion.aside className="admin-pane" variants={itemVariants}>
           <div className="admin-pane-header">
-            <h3>Pending Verifications Queue</h3>
-            <Link to="/admin/properties/verification" className="admin-link">View All (18) →</Link>
+            <div>
+              <h3>Live Activity</h3>
+              <p className="muted-copy">Micro events requiring awareness</p>
+            </div>
+            <Activity size={18} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {residences.slice(0, 3).map(p => (
-              <div key={p.id} className="admin-queue-card">
-                <img src={p.image} alt={p.name} />
-                <div style={{ flex: 1 }}>
-                  <strong style={{ fontSize: '0.9rem', color: 'var(--ink)' }}>{p.name}</strong>
-                  <small className="muted-copy" style={{ display: 'block' }}>{p.location} · Owner: Owner Partner</small>
+          <div className="admin-v7-activity-feed">
+            {activityFeed.map(item => (
+              <div key={item.id} className={`admin-v7-activity-item tone-${item.tone}`}>
+                <span><item.icon size={16} /></span>
+                <div>
+                  <strong>{item.title}</strong>
+                  <small>{item.meta}</small>
+                  <em>{item.time}</em>
                 </div>
-                <button className="primary-button compact-button" onClick={() => navigate('/admin/properties/verification')}>
-                  Review
+              </div>
+            ))}
+          </div>
+        </motion.aside>
+      </div>
+
+      <div className="admin-v7-bottom-grid">
+        <motion.section className="admin-pane" variants={itemVariants}>
+          <div className="admin-pane-header">
+            <div>
+              <h3>User & Data Management</h3>
+              <p className="muted-copy">City performance suitable for PG admin decisions</p>
+            </div>
+            <Link to="/admin/analytics" className="admin-link">Full analytics</Link>
+          </div>
+          <div className="admin-v7-city-list">
+            {cityStats.map(city => (
+              <div key={city.city} className="admin-v7-city-row">
+                <span><MapPin size={15} /> {city.city}</span>
+                <strong>{city.properties} properties</strong>
+                <small>{city.residents} residents</small>
+                <div className="admin-v7-city-meter">
+                  <i style={{ width: `${city.occupancy}%` }} />
+                </div>
+                <b>{city.occupancy}% occupied</b>
+                <em>{city.revenue}</em>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        <motion.section className="admin-pane" variants={itemVariants}>
+          <div className="admin-pane-header">
+            <div>
+              <h3>Verification Queue</h3>
+              <p className="muted-copy">Pending property review preview</p>
+            </div>
+            <Link to="/admin/properties/verification" className="admin-link">View all</Link>
+          </div>
+          <div className="admin-v7-queue-list">
+            {residences.slice(0, 3).map((property, index) => (
+              <div key={property.id} className="admin-queue-card admin-v7-queue-card">
+                <img src={property.image} alt={property.name} />
+                <div>
+                  <strong>{property.name}</strong>
+                  <small><MapPin size={12} /> {property.location}</small>
+                  <span>{index === 0 ? 'Identity check' : index === 1 ? 'Photo review' : 'Rent proof'}</span>
+                </div>
+                <button className="admin-icon-button" onClick={() => navigate('/admin/properties/verification')} aria-label={`Review ${property.name}`}>
+                  <Eye size={16} />
                 </button>
               </div>
             ))}
           </div>
-        </div>
+        </motion.section>
+
+        <motion.section className="admin-pane admin-v7-action-pane" variants={itemVariants}>
+          <div className="admin-pane-header">
+            <div>
+              <h3>Quick Controls</h3>
+              <p className="muted-copy">Fast admin routes</p>
+            </div>
+            <Bell size={18} />
+          </div>
+          <div className="admin-v7-quick-actions">
+            <button onClick={() => navigate('/admin/users')}><Users size={16} /> Manage users</button>
+            <button onClick={() => navigate('/admin/properties')}><Building2 size={16} /> Audit PG data</button>
+            <button onClick={() => navigate('/admin/payments')}><WalletCards size={16} /> Reconcile payments</button>
+            <button onClick={() => navigate('/admin/complaints')}><XCircle size={16} /> Resolve complaints</button>
+          </div>
+        </motion.section>
       </div>
-    </div>
+    </motion.div>
   )
 }

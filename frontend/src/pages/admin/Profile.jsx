@@ -13,10 +13,10 @@ export default function Profile() {
   const { user } = useAuth()
   const [editing, setEditing] = useState(false)
   const [adminData, setAdminData] = useState({
-    name: user?.name || 'Nestora System Admin',
-    email: user?.email || 'nestora2671@gmail.com',
-    phone: '+91 9999999999',
-    role: 'Super Administrator',
+    name: user?.name || 'Administrator',
+    email: user?.email || '',
+    phone: user?.mobile || '',
+    role: user?.roleName || 'Administrator',
   })
 
   return (

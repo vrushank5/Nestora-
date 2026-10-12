@@ -1,4 +1,5 @@
 import { ArrowUpRight, Building2, Headphones, ShieldCheck, Sparkles } from 'lucide-react'
+import NestoraLogo from './NestoraLogo.jsx'
 
 const columns = [
   ['Platform', 'Discover PGs', 'Popular locations', 'Resident dashboard', 'Owner access'],
@@ -12,11 +13,7 @@ function Footer() {
       <div className="footer-grid section-shell">
         <div className="footer-brand-block">
           <div className="brand-logo footer-brand">
-            <span className="brand-mark"><Sparkles size={20} /></span>
-            <span>
-              <strong>NESTORA</strong>
-              <small>PG & CO-LIVING</small>
-            </span>
+            <NestoraLogo variant="header" showText={true} />
           </div>
           <p>
             Verified PG and co-living spaces presented with clear pricing, useful filters,

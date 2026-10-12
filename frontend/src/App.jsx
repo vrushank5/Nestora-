@@ -72,19 +72,22 @@ import OwnerAnalytics from './pages/owner/Analytics.jsx'
 import OwnerNotifications from './pages/owner/Notifications.jsx'
 import OwnerProfile from './pages/owner/Profile.jsx'
 import OwnerSettings from './pages/owner/Settings.jsx'
+import { useAuth } from './context/useAuth.js'
 
 function App() {
   const location = useLocation()
-  const shouldShowLoader =
-    location.pathname === '/' && window.sessionStorage.getItem('nestora-loader-seen') !== 'true'
-  const [isLoading, setIsLoading] = useState(shouldShowLoader)
+  const { authChecking } = useAuth()
+  const [splashLoading, setSplashLoading] = useState(true)
 
   useEffect(() => {
-    if (!isLoading) return undefined
-    const timer = window.setTimeout(() => setIsLoading(false), 1700)
-    window.sessionStorage.setItem('nestora-loader-seen', 'true')
+    // Display splash screen on page refresh / initial app load
+    const timer = window.setTimeout(() => {
+      setSplashLoading(false)
+    }, 1300)
     return () => window.clearTimeout(timer)
-  }, [isLoading])
+  }, [])
+
+  const isLoading = splashLoading || authChecking
 
   return (
     <AnimatePresence mode="wait">

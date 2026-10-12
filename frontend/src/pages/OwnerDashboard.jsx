@@ -26,10 +26,17 @@ const navItems = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ]
 
+const propertyFallbackImages = [
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=85',
+  'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1000&q=85',
+  'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1000&q=85',
+  'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=1000&q=85',
+]
+
 const defaultBookings = [
-  { id: 'b-101', propertyName: 'Nestora Heights', residentName: 'Riya Shah', date: '25 Aug 2026', rent: 'Rs.8,500/mo', status: 'Pending' },
-  { id: 'b-102', propertyName: 'Urban Living PG', residentName: 'Aarav Mehta', date: '24 Aug 2026', rent: 'Rs.7,500/mo', status: 'Approved' },
-  { id: 'b-103', propertyName: 'Nestora Central', residentName: 'Kabir Patel', date: '10 Jul 2026', rent: 'Rs.8,200/mo', status: 'Completed' },
+  { id: 'b-101', propertyName: 'Nestora Heights', residentName: 'Riya Shah', date: '25 Aug 2026', rent: '$8,500/mo', status: 'Pending' },
+  { id: 'b-102', propertyName: 'Urban Living PG', residentName: 'Aarav Mehta', date: '24 Aug 2026', rent: '$7,500/mo', status: 'Approved' },
+  { id: 'b-103', propertyName: 'Nestora Central', residentName: 'Kabir Patel', date: '10 Jul 2026', rent: '$8,200/mo', status: 'Completed' },
 ]
 
 const defaultResidents = [
@@ -45,7 +52,7 @@ const getInitialOwnerProperties = (userId) => {
   return []
 }
 
-const toPropertyCardData = (property) => ({
+const toPropertyCardData = (property, index = 0) => ({
   id: property.propertyId ?? property.id,
   slug: property.slug ?? property.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
   name: property.name,
@@ -54,14 +61,14 @@ const toPropertyCardData = (property) => ({
   location: property.location ?? property.area,
   rating: String(property.rating ?? '4.5'),
   reviews: property.reviews ?? 'New',
-  price: property.price,
+  price: property.price ? String(property.price).replace(/₹|Rs\.?/g, '$') : `$${Number(property.priceValue || 0).toLocaleString('en-US')}/month`,
   priceValue: Number(property.priceValue ?? 0),
   amenities: Array.isArray(property.amenities) ? property.amenities : ['Wi-Fi'],
   roomTypes: Array.isArray(property.roomTypes) ? property.roomTypes : ['Single'],
   gender: property.gender ?? 'Unisex',
   occupancy: property.occupancy ?? 'New listing',
   description: property.description ?? 'Managed property listing.',
-  image: property.image || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=85',
+  image: property.image || propertyFallbackImages[index % propertyFallbackImages.length],
 })
 
 const getInitialOwnerBookings = () => {
@@ -82,7 +89,7 @@ function OwnerDashboard() {
       try {
         const response = await apiRequest('/properties', { token: null })
         const items = Array.isArray(response?.data) ? response.data : []
-        const nextProperties = items.map(toPropertyCardData)
+        const nextProperties = items.map((property, index) => toPropertyCardData(property, index))
         setOwnerProperties(nextProperties)
         localStorage.setItem(`residences_${user?.userId || 'owner'}`, JSON.stringify(nextProperties))
       } catch (error) {
@@ -193,7 +200,7 @@ function OwnerDashboard() {
       {activeTab === 'overview' ? (
         <DashboardSection title={`Owner workspace, ${user?.name || 'Partner'}`} subtitle="Manage local listing data, booking requests, and resident records.">
           <div className="dashboard-stats-grid">
-            <StatCard label="Projected monthly rent" value={`Rs.${monthlyRevenue.toLocaleString('en-IN')}`} icon={DollarSign} />
+            <StatCard label="Projected monthly rent" value={`$${monthlyRevenue.toLocaleString('en-US')}`} icon={DollarSign} />
             <StatCard label="Properties" value={ownerProperties.length} icon={Building2} />
             <StatCard label="Residents" value={residentsList.length} icon={Users} />
             <StatCard label="Pending requests" value={ownerBookings.filter((booking) => booking.status === 'Pending').length} icon={BookOpen} />

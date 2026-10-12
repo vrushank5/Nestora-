@@ -15,7 +15,7 @@ export default function OwnerDetail() {
     address: 'Satellite, Ahmedabad, Gujarat',
     verification: 'Verified',
     status: 'Active',
-    totalRevenue: '₹14,80,000',
+    totalRevenue: '$14,80,000',
     joined: '01 Jun 2026',
   }
 

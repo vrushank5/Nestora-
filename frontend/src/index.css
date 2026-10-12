@@ -9,6 +9,9 @@
   --muted: #687a74;
   --paper: #fbfaf6;
   --paper-2: #f3efe6;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --input-bg: #ffffff;
   --line: #ded7ca;
   --line-dark: rgba(255, 255, 255, 0.12);
   --jade: #0a6f5b;
@@ -23,6 +26,26 @@
   --shadow-sm: 0 10px 24px rgba(18, 34, 31, 0.08);
   --shadow-md: 0 22px 55px rgba(18, 34, 31, 0.14);
   --radius: 8px;
+  --input-height: 46px;
+  --icon-xs: 14px;
+  --icon-sm: 16px;
+  --icon-md: 18px;
+  --icon-lg: 20px;
+  --transition-fast: 160ms ease;
+  --text-primary: var(--ink);
+  --text-secondary: var(--muted);
+  --border-color: var(--line);
+  --action: var(--jade);
+  --action-hover: var(--jade-2);
+  --button-secondary-bg: transparent;
+  --button-secondary-hover: var(--paper-2);
+  --link-color: var(--jade);
+  --icon-color: var(--ink-2);
+  --focus-ring: rgba(10, 111, 91, 0.35);
+  --success: #257451;
+  --warning: #9b6817;
+  --error: #b44735;
+  --info: #31566c;
   --font-body: 'Instrument Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-display: 'Fraunces', Georgia, serif;
 }
@@ -66,6 +89,17 @@ button {
 button:disabled {
   cursor: not-allowed;
   opacity: 0.62;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(18, 34, 31, 0.42);
+}
+
+input,
+select,
+textarea {
+  appearance: none;
 }
 
 img {
@@ -139,16 +173,22 @@ h2 {
 }
 
 .ghost-button {
-  background: transparent;
+  background: var(--button-secondary-bg);
   border: 1px solid var(--line);
   color: var(--ink);
   padding: 12px 18px;
 }
 
 .ghost-button:hover {
+  background: var(--button-secondary-hover);
   border-color: var(--jade);
   color: var(--jade);
   transform: translateY(-2px);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .compact-button {
@@ -223,6 +263,181 @@ h2 {
   font-size: 0.62rem;
   font-weight: 900;
   letter-spacing: 0.12em;
+}
+
+/* ==================================================
+   NESTORA OFFICIAL LOGO SYSTEM
+   ================================================== */
+.nestora-logo-img {
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* Sleek sidebar lockup for dark green sidebars */
+.nestora-logo-sidebar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.nestora-sidebar-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  object-fit: contain;
+  background: #fdfbf7;
+  border: 1px solid rgba(229, 168, 67, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  flex-shrink: 0;
+  display: block;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nestora-logo-sidebar:hover .nestora-sidebar-icon {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.nestora-sidebar-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1;
+}
+
+.nestora-sidebar-text strong {
+  color: var(--white);
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+
+.nestora-sidebar-text small {
+  color: #41d6b8;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+/* Header & footer lockup */
+.nestora-logo-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.nestora-header-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 9px;
+  box-shadow: 0 2px 8px rgba(18, 34, 31, 0.08);
+  border: 1px solid rgba(229, 168, 67, 0.25);
+  background: #fdfbf7;
+  flex-shrink: 0;
+  display: block;
+}
+
+.nestora-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nestora-header-text strong {
+  color: var(--ink);
+  font-size: 1.12rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.nestora-header-text small {
+  color: var(--jade);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+}
+
+/* Refined auth form icon */
+.nestora-auth-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nestora-auth-icon-img {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: #fdfbf7;
+  border: 1px solid rgba(229, 168, 67, 0.28);
+  box-shadow: 0 4px 14px rgba(18, 34, 31, 0.07);
+  display: block;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nestora-auth-icon-wrap:hover .nestora-auth-icon-img {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(18, 34, 31, 0.12);
+}
+
+.auth-panel-brand {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 900px) {
+  .auth-panel-brand {
+    justify-content: center;
+  }
+}
+
+.nestora-logo-loader-pod {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: #fdfbf7;
+  border-radius: 16px;
+  border: 1.5px solid rgba(229, 168, 67, 0.4);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 0 30px rgba(229, 168, 67, 0.15);
+}
+
+.nestora-logo-loader-pod .nestora-logo-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.nestora-logo-footer-pod {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  background: #fdfbf7;
+  border-radius: 10px;
+  border: 1px solid rgba(229, 168, 67, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.nestora-logo-footer-pod .nestora-logo-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 6px;
 }
 
 .desktop-nav,
@@ -569,7 +784,7 @@ h2 {
 
 .property-card {
   overflow: hidden;
-  background: var(--white);
+  background: var(--surface);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -1118,12 +1333,19 @@ h2 {
 
 .icon-field svg {
   position: absolute;
+  top: 50%;
   left: 14px;
+  width: 18px;
+  height: 18px;
   color: var(--muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+  stroke-width: 2;
+  flex-shrink: 0;
 }
 
 .icon-field input {
-  padding-left: 43px;
+  padding-left: 44px;
 }
 
 .form-field input,
@@ -1133,13 +1355,15 @@ h2 {
 .explore-search-input,
 .chat-input-row input {
   width: 100%;
-  min-height: 46px;
+  min-height: var(--input-height);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--white);
+  border-radius: 10px;
+  background: var(--surface);
   color: var(--ink);
   padding: 0 14px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-size: 1rem;
+  line-height: 1.4;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
 }
 
 .form-field textarea {
@@ -1153,7 +1377,13 @@ h2 {
 .form-field textarea:focus,
 .explore-filter-row select:focus,
 .explore-search-input:focus-within,
-.chat-input-row input:focus {
+.chat-input-row input:focus,
+.password-field button:focus-visible,
+.primary-button:focus-visible,
+.ghost-button:focus-visible,
+.role-tabs button:focus-visible,
+.checkbox-label input:focus-visible {
+  outline: none;
   border-color: var(--jade);
   box-shadow: 0 0 0 4px rgba(10, 111, 91, 0.11);
 }
@@ -1166,9 +1396,22 @@ h2 {
   height: 34px;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--muted);
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  z-index: 2;
+}
+
+.password-field button:hover {
+  background: rgba(10, 111, 91, 0.06);
+  border-color: rgba(10, 111, 91, 0.12);
+  color: var(--jade);
+}
+
+.password-field input {
+  padding-right: 42px;
 }
 
 .field-error {
@@ -1192,10 +1435,22 @@ h2 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ink-2);
 }
 
-input[type='checkbox'] {
+.checkbox-label input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
   accent-color: var(--jade);
+  border-radius: 6px;
+}
+
+.checkbox-label input[type='checkbox']:focus-visible {
+  outline: 3px solid rgba(10, 111, 91, 0.18);
+  outline-offset: 2px;
 }
 
 .auth-options a,
@@ -1461,7 +1716,7 @@ input[type='checkbox'] {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--white);
+  background: var(--surface);
   text-align: left;
 }
 
@@ -1497,7 +1752,7 @@ input[type='checkbox'] {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--white);
+  background: var(--surface);
 }
 
 .explore-filter-row {
@@ -1547,7 +1802,7 @@ input[type='checkbox'] {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--white);
+  background: var(--surface);
 }
 
 .booking-item-card img {
@@ -1624,7 +1879,7 @@ input[type='checkbox'] {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--white);
+  background: var(--surface);
 }
 
 .chat-inbox {
@@ -1802,7 +2057,7 @@ input[type='checkbox'] {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--white);
+  background: var(--surface);
   color: var(--ink);
   font-weight: 800;
 }
@@ -2016,7 +2271,7 @@ input[type='checkbox'] {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius);
-  background: var(--white);
+  background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-sm);
 }
@@ -2070,7 +2325,7 @@ input[type='checkbox'] {
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--white);
+  background: var(--surface);
 }
 
 .checkout-row {
@@ -2089,59 +2344,53 @@ input[type='checkbox'] {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  background: var(--night);
-  color: var(--white);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 24px;
 }
 
 .loader-card,
 .loader-center {
-  display: grid;
-  place-items: center;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
 }
 
-.loader-mark {
-  display: grid;
-  place-items: center;
-  width: 58px;
-  height: 58px;
-  border-radius: var(--radius);
-  background: var(--paper);
-  color: var(--jade);
-}
-
-.loader-card strong,
-.loader-center strong {
-  color: var(--white);
-  font-size: 2rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-}
-
-.loader-card p {
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 0.76rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+.loader-indicator-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .loader-track,
 .loader-bar {
   position: relative;
-  width: 190px;
-  height: 4px;
+  width: 140px;
+  height: 3px;
   overflow: hidden;
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--line);
 }
 
 .loader-track span,
 .loader-bar span {
   position: absolute;
   inset: 0 auto 0 0;
-  width: 42%;
+  width: 40%;
   border-radius: inherit;
   background: var(--saffron);
+}
+
+.loader-caption {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 @media (max-width: 1180px) {
@@ -2358,5 +2607,281 @@ input[type='checkbox'] {
   .cta-actions,
   .cta-actions button {
     width: 100%;
+  }
+}
+
+/* Shared Nestora theme tokens and global dark-mode surfaces */
+html {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --ink: #edf2eb;
+  --ink-2: #cbd5ce;
+  --muted: #9eaaa2;
+  --paper: #101916;
+  --paper-2: #15221d;
+  --surface: #1b2923;
+  --surface-raised: #22332b;
+  --input-bg: #14211b;
+  --line: #304139;
+  --line-dark: rgba(219, 232, 221, 0.14);
+  --jade: #78bd9b;
+  --jade-2: #337b5b;
+  --saffron: #e8bd72;
+  --terracotta: #e68776;
+  --steel: #86b6c5;
+  --sky: #20382f;
+  --night: #101a16;
+  --night-2: #192720;
+  --shadow-sm: 0 10px 24px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 22px 55px rgba(0, 0, 0, 0.32);
+  --text-primary: #edf2eb;
+  --text-secondary: #a8b4ac;
+  --border-color: #304139;
+  --action: #2c704f;
+  --action-hover: #38835f;
+  --button-secondary-bg: transparent;
+  --button-secondary-hover: #22332b;
+  --link-color: #78bd9b;
+  --icon-color: #b3c4b8;
+  --focus-ring: rgba(120, 189, 155, 0.5);
+  --success: #78c99e;
+  --warning: #e8bd72;
+  --error: #ef8a7a;
+  --info: #86b6d1;
+}
+
+body,
+.app-page,
+.site-navbar,
+.owner-layout,
+.admin-layout,
+.r-layout,
+.owner-page-container,
+.admin-main,
+.r-main {
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.theme-toggle:hover {
+  transform: translateY(-1px);
+  border-color: var(--jade);
+  background: var(--surface-raised);
+  color: var(--saffron);
+}
+
+.theme-toggle:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.resident-theme-control {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 997;
+}
+
+.auth-theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 110;
+}
+
+html[data-theme='dark'] body {
+  color: var(--text-primary);
+  background: var(--paper);
+}
+
+html[data-theme='dark'] .app-loader {
+  background: radial-gradient(circle at 50% 45%, #172a22 0%, #101916 100%);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] :is(.loader-track, .loader-bar) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+html[data-theme='dark'] .loader-caption {
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] .app-page {
+  background: linear-gradient(180deg, transparent 0, var(--paper) 680px), var(--paper);
+}
+
+html[data-theme='dark'] .site-navbar,
+html[data-theme='dark'] .site-navbar.is-scrolled {
+  background: rgba(21, 34, 29, 0.96);
+  border-color: var(--border-color);
+}
+
+html[data-theme='dark'] .nav-chip,
+html[data-theme='dark'] .home-search,
+html[data-theme='dark'] .hero-availability,
+html[data-theme='dark'] .auth-panel,
+html[data-theme='dark'] .mobile-menu,
+html[data-theme='dark'] .detail-modal,
+html[data-theme='dark'] .property-card,
+html[data-theme='dark'] .feature-card,
+html[data-theme='dark'] .step-card,
+html[data-theme='dark'] .testimonial-card,
+html[data-theme='dark'] .dashboard-pane,
+html[data-theme='dark'] .dashboard-stat-card,
+html[data-theme='dark'] .resident-card,
+html[data-theme='dark'] .settings-list,
+html[data-theme='dark'] .category-card {
+  background-color: var(--surface);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .owner-navbar,
+html[data-theme='dark'] .admin-navbar {
+  background: var(--surface);
+  border-color: var(--border-color);
+}
+
+html[data-theme='dark'] .mobile-toggle {
+  background: var(--action);
+  color: #ffffff;
+}
+
+html[data-theme='dark'] .brand-mark {
+  background: var(--action);
+  color: var(--saffron);
+}
+
+html[data-theme='dark'] .primary-button,
+html[data-theme='dark'] .nav-cta,
+html[data-theme='dark'] .auth-submit {
+  background: var(--action);
+  color: #ffffff;
+}
+
+html[data-theme='dark'] .primary-button:hover,
+html[data-theme='dark'] .nav-cta:hover,
+html[data-theme='dark'] .auth-submit:hover {
+  background: var(--action-hover);
+}
+
+html[data-theme='dark'] .ghost-button {
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] input:not([type='checkbox']):not([type='radio']),
+html[data-theme='dark'] select,
+html[data-theme='dark'] textarea {
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+html[data-theme='dark'] input::placeholder,
+html[data-theme='dark'] textarea::placeholder {
+  color: #94a39a;
+}
+
+html[data-theme='dark'] option {
+  background-color: var(--surface);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] input[type='checkbox'],
+html[data-theme='dark'] input[type='radio'] {
+  accent-color: var(--jade);
+}
+
+html[data-theme='dark'] :is(input, select, textarea, button, a):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+html[data-theme='dark'] :is(.owner-stat-card, .owner-property-card, .owner-empty-state, .dashboard-chart-pane, .dashboard-list-pane, .table-card, .settings-row, .settings-note, .r-stat-card, .r-pane, .r-property-row, .admin-stat-card, .admin-pane, .admin-queue-card, .admin-dropdown-menu, .owner-dropdown-menu, .profile-card, .search-panel, .filter-panel, .modal-content, .modal-card) {
+  background-color: var(--surface);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] :is([class$='-card'], [class*='-card '], [class$='-pane'], [class*='-pane '], [class$='-panel'], [class*='-panel '], [class$='-modal'], [class*='-modal '], [class*='dropdown-menu'], .owner-table-wrapper, .admin-table-wrapper) {
+  background: var(--surface) !important;
+}
+
+html[data-theme='dark'] :is(.property-metrics, .admin-alert-item, .health-row, .admin-dropdown-header, .owner-search-box, .owner-property-selector select, .admin-search-bar, .admin-range-selector, .explore-filter-row, .home-search label, .table-card thead, .filter-item select) {
+  background-color: var(--surface-raised);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+html[data-theme='dark'] .owner-dropdown-menu,
+html[data-theme='dark'] .admin-dropdown-menu,
+html[data-theme='dark'] .mobile-menu {
+  background-color: var(--surface-raised);
+  border-color: var(--border-color);
+}
+
+html[data-theme='dark'] :is(.table-card th, .table-card td, table th, table td) {
+  border-color: var(--border-color);
+}
+
+html[data-theme='dark'] :is(tbody tr:hover, .r-property-row:hover, .owner-dropdown-menu a:hover, .owner-dropdown-menu button:hover, .admin-dropdown-links a:hover, .admin-dropdown-links button:hover) {
+  background-color: var(--surface-raised);
+}
+
+html[data-theme='dark'] :is(.status-pending, .status-partially-occupied, .payment-pending, .property-badge.pending, .admin-verification-pill, .smart-alert-card) {
+  color: var(--warning);
+}
+
+html[data-theme='dark'] :is(.status-approved, .status-occupied, .status-paid, .status-current, .health-status-badge) {
+  color: var(--success);
+}
+
+html[data-theme='dark'] .status-available {
+  color: var(--error);
+}
+
+html[data-theme='dark'] :is(.admin-v7-chart-shell, .admin-v7-bar-chart, .admin-v7-chart-grid, .chart-grid, .chart-axis) {
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+html[data-theme='dark'] ::selection {
+  color: var(--text-primary);
+  background: rgba(120, 189, 155, 0.32);
+}
+
+@media (max-width: 920px) {
+  .resident-theme-control {
+    top: 12px;
+    right: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

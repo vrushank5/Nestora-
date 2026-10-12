@@ -64,6 +64,35 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    ownerSettings: {
+      notifications: {
+        bookingRequests: { type: Boolean, default: true },
+        paymentUpdates: { type: Boolean, default: true },
+        residentMessages: { type: Boolean, default: true },
+        productUpdates: { type: Boolean, default: false },
+      },
+      properties: {
+        defaultCity: { type: String, trim: true, default: "Ahmedabad" },
+        defaultAllowedGender: {
+          type: String,
+          enum: ["Unisex", "Male", "Female"],
+          default: "Unisex",
+        },
+      },
+      payments: {
+        payoutMethod: {
+          type: String,
+          enum: ["bank-transfer", "upi"],
+          default: "bank-transfer",
+        },
+        payoutEmail: { type: String, trim: true, lowercase: true, default: "" },
+      },
+      privacy: {
+        shareContactWithResidents: { type: Boolean, default: true },
+        personalizedInsights: { type: Boolean, default: true },
+      },
+    },
   },
   {
     timestamps: true,

@@ -1,13 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, AlertTriangle } from 'lucide-react'
 import PropertyForm from '../../../components/owner/PropertyForm.jsx'
 import { propertyService } from '../../../services/propertyService.js'
+import { ownerApi } from '../../../services/api.js'
 
 export default function PropertyAdd() {
   const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [listingDefaults, setListingDefaults] = useState({ city: 'Ahmedabad', gender: 'Unisex' })
+
+  useEffect(() => {
+    let active = true
+    ownerApi.getSettings()
+      .then(({ data }) => {
+        if (active) {
+          setListingDefaults({
+            city: data?.properties?.defaultCity || 'Ahmedabad',
+            gender: data?.properties?.defaultAllowedGender || 'Unisex',
+          })
+        }
+      })
+      .catch((loadError) => {
+        if (active) {
+          console.error('Could not load owner listing preferences:', loadError)
+          setError(`Could not load your saved listing preferences. You can still create a property using the defaults shown.`)
+        }
+      })
+    return () => { active = false }
+  }, [])
 
   const handleCreateProperty = async (payload) => {
     try {
@@ -49,6 +71,8 @@ export default function PropertyAdd() {
       )}
 
       <PropertyForm
+        initialData={{ city: listingDefaults.city, gender: listingDefaults.gender }}
+        applyUpdatedDefaults
         onSubmit={handleCreateProperty}
         onCancel={() => navigate('/owner/properties')}
         isSubmitting={isSubmitting}

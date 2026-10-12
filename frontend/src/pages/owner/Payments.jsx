@@ -24,7 +24,7 @@ export default function Payments() {
           <div className="stat-details">
             <span className="stat-title">Total Revenue (Aug)</span>
             <div className="stat-value-row">
-              <h3>₹{total(payments).toLocaleString('en-IN')}</h3>
+              <h3>${total(payments).toLocaleString('en-US')}</h3>
             </div>
           </div>
         </div>
@@ -33,7 +33,7 @@ export default function Payments() {
           <div className="stat-details">
             <span className="stat-title">Collected</span>
             <div className="stat-value-row">
-              <h3>₹{total(paid).toLocaleString('en-IN')}</h3>
+              <h3>${total(paid).toLocaleString('en-US')}</h3>
             </div>
           </div>
         </div>
@@ -42,7 +42,7 @@ export default function Payments() {
           <div className="stat-details">
             <span className="stat-title">Pending</span>
             <div className="stat-value-row">
-              <h3>₹{total(pending).toLocaleString('en-IN')}</h3>
+              <h3>${total(pending).toLocaleString('en-US')}</h3>
             </div>
           </div>
         </div>
@@ -63,7 +63,7 @@ export default function Payments() {
               <th>Transaction ID</th>
               <th>Resident</th>
               <th>Property</th>
-              <th>Amount (₹)</th>
+              <th>Amount ($)</th>
               <th>Method</th>
               <th>Date</th>
               <th>Status</th>
@@ -76,7 +76,7 @@ export default function Payments() {
                 <td><strong>{tx.id}</strong></td>
                 <td>{tx.resident}</td>
                 <td>{tx.property}</td>
-                <td>{tx.amount}</td>
+                <td>{String(tx.amount || '').startsWith('$') ? tx.amount : `$${Number(tx.amount || 0).toLocaleString('en-US')}`}</td>
                 <td>{tx.method}</td>
                 <td>{tx.date}</td>
                 <td>

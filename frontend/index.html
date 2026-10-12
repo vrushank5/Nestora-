@@ -2,9 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/nestora-logo.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <meta name="application-name" content="NESTORA" />
+    <meta name="description" content="Nestora - PG &amp; Co-Living Management Platform. Verified homes, managed listings, and seamless booking." />
+    <title>Nestora | PG &amp; Co-Living</title>
+    <script>
+      (() => {
+        let theme = null
+        try {
+          theme = localStorage.getItem('nestora-theme')
+        } catch {
+          // Storage may be unavailable; fall back to the operating-system preference.
+        }
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        }
+        document.documentElement.dataset.theme = theme
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

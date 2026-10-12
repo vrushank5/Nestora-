@@ -30,7 +30,7 @@ export default function Residents() {
               <th>Resident</th>
               <th>Property / Room</th>
               <th>Move-in Date</th>
-              <th>Rent (₹)</th>
+              <th>Rent ($)</th>
               <th>Payment</th>
               <th>Status</th>
               <th>Actions</th>

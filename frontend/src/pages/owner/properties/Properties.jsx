@@ -151,7 +151,7 @@ export default function Properties() {
               </p>
               {properties.length === 0 ? (
                 <Link to="/owner/properties/add" className="primary-button mt-2">
-                  <Plus size={18} /> + Add Property
+                  <Plus size={18} /> Add Property
                 </Link>
               ) : (
                 <button

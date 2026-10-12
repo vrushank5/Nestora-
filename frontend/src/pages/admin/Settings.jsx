@@ -80,7 +80,7 @@ export default function Settings() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div className="form-field"><label>Primary Gateway</label><select><option>Razorpay</option><option>Stripe</option></select></div>
                 <div className="form-field"><label>Platform Commission (%)</label><input defaultValue="5.0" /></div>
-                <div className="form-field"><label>Currency</label><input defaultValue="INR (₹)" disabled /></div>
+                <div className="form-field"><label>Currency</label><input defaultValue="USD ($)" disabled /></div>
                 <button className="primary-button compact-button" onClick={save}>Save Payment Config</button>
               </div>
             </>

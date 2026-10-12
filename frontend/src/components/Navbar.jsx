@@ -1,6 +1,8 @@
 import { LayoutDashboard, LogIn, LogOut, Menu, Sparkles, UserRound, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import NestoraLogo from './NestoraLogo.jsx'
+import ThemeToggle from './ThemeToggle.jsx'
 import { useAuth } from '../context/useAuth.js'
 
 const navItems = [
@@ -55,11 +57,7 @@ function Navbar() {
   return (
     <header className={`site-navbar ${scrolled ? 'is-scrolled' : ''}`}>
       <Link className="brand-logo" to="/" onClick={closeMenu}>
-        <span className="brand-mark"><Sparkles size={20} /></span>
-        <span>
-          <strong>NESTORA</strong>
-          <small>PG & CO-LIVING</small>
-        </span>
+        <NestoraLogo variant="header" showText={true} />
       </Link>
 
       <nav className="desktop-nav" aria-label="Primary navigation">
@@ -69,6 +67,7 @@ function Navbar() {
       </nav>
 
       <div className="nav-actions">{accountActions}</div>
+      <ThemeToggle />
 
       <button
         className="mobile-toggle"

@@ -17,7 +17,7 @@ export default function UserDetail() {
     verified: true,
     joined: '25 Aug 2026',
     currentStay: 'Nestora Heights (Room 302)',
-    totalPaid: '₹25,500',
+    totalPaid: '$25,500',
     bookingsCount: 2,
     complaintsCount: 1,
   }

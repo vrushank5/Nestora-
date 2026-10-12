@@ -58,7 +58,7 @@ export default function Explore() {
     let list = allProperties.filter(r => {
       const q = query.toLowerCase()
       const matchQ = !q || [r.name, r.location, r.city, r.area].some(v => v?.toLowerCase().includes(q))
-      const matchB = budget === 'Any' || (budget === 'Under ₹8,000' && r.priceValue < 8000) || (budget === '₹8k–₹12k' && r.priceValue >= 8000 && r.priceValue <= 12000) || (budget === '₹12,000+' && r.priceValue > 12000)
+      const matchB = budget === 'Any' || (budget === 'Under $500' && r.priceValue < 500) || (budget === '$500–$1,000' && r.priceValue >= 500 && r.priceValue <= 1000) || (budget === '$1,000+' && r.priceValue > 1000)
       const matchG = gender === 'Any' || r.gender === gender || r.gender === 'Unisex'
       const matchR = room === 'Any' || (r.roomTypes || []).includes(room)
       const matchA = amenity === 'All' || (r.amenities || []).includes(amenity)
@@ -85,7 +85,7 @@ export default function Explore() {
         <div className="r-search-inner">
           <Search size={18} />
           <input
-            placeholder='Search by city, area, college or company... e.g. "Bodakdev under ₹9000"'
+            placeholder='Search by city, area, college or company... e.g. "Bodakdev under $500"'
             value={query}
             onChange={e => setQuery(e.target.value)}
           />
@@ -103,7 +103,7 @@ export default function Explore() {
             <div className="r-filter-group">
               <label>Budget</label>
               <select value={budget} onChange={e => setBudget(e.target.value)}>
-                <option>Any</option><option>Under ₹8,000</option><option>₹8k–₹12k</option><option>₹12,000+</option>
+                <option>Any</option><option>Under $500</option><option>$500–$1,000</option><option>$1,000+</option>
               </select>
             </div>
             <div className="r-filter-group">
@@ -239,7 +239,7 @@ function ExploreCard({ prop, saved, compared, onSave, onCompare }) {
         </div>
         <div className="r-card-footer">
           <div>
-            <strong className="r-card-price">{prop.price.replace('Rs.', '₹')}</strong>
+            <strong className="r-card-price">{prop.price.replace('Rs.', '$').replace('₹', '$')}</strong>
             <small className="r-card-deposit">+ Security deposit</small>
           </div>
           <Link to={`/resident/property/${prop.id ?? prop.propertyId}`} className="primary-button compact-button">View Details</Link>

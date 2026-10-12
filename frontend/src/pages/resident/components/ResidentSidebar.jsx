@@ -1,9 +1,12 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Search, GitCompare, Heart, BookOpen, CreditCard,
   CalendarDays, AlertTriangle, MessageSquare, Star, Bell, User,
   Settings, HelpCircle, LogOut, X, Building2
 } from 'lucide-react'
+import { apiRequest } from '../../../services/api.js'
+import NestoraLogo from '../../../components/NestoraLogo.jsx'
 
 const navGroups = [
   {
@@ -48,18 +51,37 @@ const navGroups = [
 export default function ResidentSidebar({ user, isOpen, setIsOpen, onLogout }) {
   const location = useLocation()
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'R'
+  const [summary, setSummary] = useState({})
+
+  useEffect(() => {
+    let active = true
+    apiRequest('/resident/summary')
+      .then(response => {
+        if (active) setSummary(response.data || {})
+      })
+      .catch(() => {
+        if (active) setSummary({})
+      })
+    return () => { active = false }
+  }, [])
+
+  const savedHomes = JSON.parse(localStorage.getItem(`saved_${user?.userId || 'guest'}`) || '[]')
+  const badgeCounts = {
+    bookings: summary.activeBookings,
+    payments: summary.pendingPayments,
+    visits: summary.visits,
+    complaints: summary.complaints,
+    saved: savedHomes.length,
+    reviews: summary.reviews,
+  }
 
   return (
     <aside className={`r-sidebar ${isOpen ? 'open' : ''}`}>
       {/* Header */}
       <div className="r-sidebar-head">
-        <div className="brand-logo dashboard-brand">
-          <span className="brand-mark"><Building2 size={18} /></span>
-          <span>
-            <strong>NESTORA</strong>
-            <small>RESIDENT</small>
-          </span>
-        </div>
+        <Link to="/resident/dashboard" className="brand-logo dashboard-brand" style={{ textDecoration: 'none' }}>
+          <NestoraLogo variant="sidebar" subtitle="RESIDENT" />
+        </Link>
         <button className="r-sidebar-close" onClick={() => setIsOpen(false)} aria-label="Close sidebar">
           <X size={18} />
         </button>
@@ -91,6 +113,11 @@ export default function ResidentSidebar({ user, isOpen, setIsOpen, onLogout }) {
                 >
                   <item.icon size={17} />
                   <span>{item.label}</span>
+                  {badgeCounts[item.id] !== undefined && (
+                    <span className={`admin-nav-badge ${['payments', 'complaints'].includes(item.id) ? 'alert' : ''}`}>
+                      {badgeCounts[item.id]}
+                    </span>
+                  )}
                 </Link>
               )
             })}

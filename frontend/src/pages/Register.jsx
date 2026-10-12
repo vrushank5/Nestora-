@@ -18,6 +18,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { authApi } from '../services/api.js'
 import { homeImages } from '../data/homeData.js'
+import NestoraLogo from '../components/NestoraLogo.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const mobilePattern = /^(\+91[\s-]?)?[6-9]\d{9}$/
@@ -113,6 +115,7 @@ function Register() {
 
   return (
     <main className="auth-page">
+      <ThemeToggle className="auth-theme-toggle" />
       <section className="auth-shell register-shell">
         <motion.aside
           className="auth-visual register-visual"
@@ -121,12 +124,8 @@ function Register() {
           transition={{ duration: 0.55 }}
         >
           <img src={homeImages.coliving} alt="Nestora shared living space" />
-          <Link className="brand-logo auth-brand" to="/">
-            <span className="brand-mark"><Sparkles size={20} /></span>
-            <span>
-              <strong>NESTORA</strong>
-              <small>JOIN NESTORA</small>
-            </span>
+          <Link className="brand-logo auth-brand" to="/" style={{ textDecoration: 'none' }}>
+            <NestoraLogo variant="sidebar" subtitle="JOIN NESTORA" />
           </Link>
           <div className="auth-visual-copy">
             <span><ShieldCheck size={16} /> Public registration</span>
@@ -142,9 +141,14 @@ function Register() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, delay: 0.08 }}
         >
+          <div className="auth-panel-brand">
+            <Link to="/" style={{ textDecoration: 'none', display: 'inline-block' }} aria-label="Nestora Home">
+              <NestoraLogo variant="auth-icon" width="52px" />
+            </Link>
+          </div>
           <div className="panel-heading">
             <span className="section-kicker"><CheckCircle2 size={14} /> Account setup</span>
-            <h2>{isResident ? 'Resident account' : 'Owner account'}</h2>
+            <h2>Create your Nestora account</h2>
             <p>Complete the required details. The submitted payload follows the current backend registration contract.</p>
           </div>
 

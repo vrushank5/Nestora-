@@ -18,6 +18,7 @@ router.get("/property/:propertyId", getRoomsByProperty);
 router.get("/owner/my", authMiddleware, getOwnerRooms);
 
 // Admin get all rooms (Protected)
+router.get("/", authMiddleware, getAdminRooms);
 router.get("/admin/all", authMiddleware, getAdminRooms);
 
 // Create room (Protected, Owner)

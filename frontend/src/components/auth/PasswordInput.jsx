@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Lock } from 'lucide-react'
 import { useState } from 'react'
 
 function PasswordInput({
@@ -20,7 +20,8 @@ function PasswordInput({
         {label}
         {required ? <span aria-hidden="true">*</span> : null}
       </label>
-      <div className="password-field">
+      <div className="icon-field password-field">
+        <Lock size={18} />
         <input
           id={id}
           type={visible ? 'text' : 'password'}

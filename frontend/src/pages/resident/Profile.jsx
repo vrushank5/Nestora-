@@ -4,20 +4,21 @@ import { useAuth } from '../../context/useAuth.js'
 
 export default function Profile() {
   const { user } = useAuth()
+  const [firstName = '', ...lastNameParts] = user?.name?.trim().split(/\s+/) || []
   const [editing, setEditing] = useState(false)
   const [profile, setProfile] = useState({
-    firstName: user?.name?.split(' ')[0] || 'Resident',
-    lastName: user?.name?.split(' ')[1] || 'Member',
-    email: user?.email || 'resident@nestora.com',
-    phone: user?.mobile || '+91 9876543210',
-    gender: 'Male',
-    dob: '1998-05-15',
-    occupation: 'Software Engineer',
-    college: 'IIT Ahmedabad',
-    city: 'Ahmedabad',
-    state: 'Gujarat',
-    address: 'Bodakdev, Ahmedabad, Gujarat - 380054',
-    emergency: '+91 9876501234',
+    firstName: firstName || 'Resident',
+    lastName: lastNameParts.join(' '),
+    email: user?.email || '',
+    phone: user?.mobile || '',
+    gender: { male: 'Male', female: 'Female', other: 'Other' }[user?.gender?.toLowerCase()] || '',
+    dob: '',
+    occupation: user?.occupation || '',
+    college: '',
+    city: '',
+    state: '',
+    address: user?.address || '',
+    emergency: '',
   })
 
   const completionFields = ['firstName', 'lastName', 'phone', 'gender', 'dob', 'occupation', 'city', 'address', 'emergency']
@@ -58,7 +59,7 @@ export default function Profile() {
         </div>
         <div style={{ flex: 1 }}>
           <h3 style={{ marginBottom: '4px' }}>{profile.firstName} {profile.lastName}</h3>
-          <p className="muted-copy">{profile.occupation} · {profile.city}</p>
+          <p className="muted-copy">{[profile.occupation, profile.city].filter(Boolean).join(' · ')}</p>
           <div className="progress-row" style={{ marginTop: '12px' }}>
             <div><span>Profile Completion</span><strong>{completion}%</strong></div>
             <div className="progress-track"><i style={{ width: `${completion}%` }} /></div>
@@ -76,6 +77,7 @@ export default function Profile() {
               <label>{label}</label>
               {type === 'select' ? (
                 <select value={profile[key]} disabled={!editing} onChange={e => setProfile({ ...profile, [key]: e.target.value })}>
+                  <option value="">Select gender</option>
                   {options.map(o => <option key={o}>{o}</option>)}
                 </select>
               ) : (

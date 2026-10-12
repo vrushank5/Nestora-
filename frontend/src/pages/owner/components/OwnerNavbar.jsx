@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Bell, HelpCircle, Menu, UserCircle, Settings, LogOut } from 'lucide-react'
+import ThemeToggle from '../../../components/ThemeToggle.jsx'
 
 export default function OwnerNavbar({ user, onMenuClick, onLogout }) {
   const [profileOpen, setProfileOpen] = useState(false)
@@ -19,6 +20,7 @@ export default function OwnerNavbar({ user, onMenuClick, onLogout }) {
       </div>
 
       <div className="owner-navbar-right">
+        <ThemeToggle />
         <div className="owner-property-selector">
           <select>
             <option>All Properties</option>

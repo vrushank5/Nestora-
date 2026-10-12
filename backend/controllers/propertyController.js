@@ -44,7 +44,9 @@ const normalizeProperty = (property) => {
     rating: Number(property.rating ?? 0),
     reviews: Number(property.reviews ?? 0),
 
-    price: property.price,
+    price: property.price
+      ? String(property.price).replace(/₹|Rs\.?/g, '$')
+      : `$${(property.priceValue ?? 0).toLocaleString('en-US')}/month`,
     priceValue: Number(property.priceValue ?? 0),
 
     // SECURITY DEPOSIT

@@ -41,7 +41,7 @@ function PropertyCard({ residence, disabled = false, saved = false, onSave, onVi
 
         <div className="property-foot">
           <div>
-            <strong>{residence.price}</strong>
+            <strong>{String(residence.price || '').replace(/₹|Rs\.?/g, '$')}</strong>
             <small>{residence.occupancy || `${residence.reviews} reviews`}</small>
           </div>
           <button className="primary-button compact-button" type="button" disabled={disabled} onClick={onView}>

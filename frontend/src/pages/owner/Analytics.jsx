@@ -18,7 +18,7 @@ export default function Analytics() {
 
       <div className="owner-stats-grid mb-4" style={{ marginBottom: '24px' }}>
         <div className="owner-stat-card 3d-tilt-card"><div className="stat-icon"><Users size={22} /></div><div className="stat-details"><span className="stat-title">Avg Occupancy</span><div className="stat-value-row"><h3>{data.occupancy ?? '...'}%</h3></div></div></div>
-        <div className="owner-stat-card 3d-tilt-card"><div className="stat-icon"><DollarSign size={22} /></div><div className="stat-details"><span className="stat-title">Avg Rent/Bed</span><div className="stat-value-row"><h3>₹{Number(data.averageRent || 0).toLocaleString('en-IN')}</h3></div></div></div>
+        <div className="owner-stat-card 3d-tilt-card"><div className="stat-icon"><DollarSign size={22} /></div><div className="stat-details"><span className="stat-title">Avg Rent/Bed</span><div className="stat-value-row"><h3>${Number(data.averageRent || 0).toLocaleString('en-US')}</h3></div></div></div>
         <div className="owner-stat-card 3d-tilt-card"><div className="stat-icon"><Building2 size={22} /></div><div className="stat-details"><span className="stat-title">Total Bookings</span><div className="stat-value-row"><h3>{data.bookings ?? '...'}</h3></div></div></div>
       </div>
 

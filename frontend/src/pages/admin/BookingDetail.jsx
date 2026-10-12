@@ -12,9 +12,9 @@ export default function BookingDetail() {
     room: '302 (Twin Sharing)',
     moveIn: '01 Sep 2026',
     stayDuration: '12 Months',
-    amount: '₹8,500/mo',
-    deposit: '₹17,000',
-    payment: 'Paid via Razorpay UPI',
+    amount: '$8,500/mo',
+    deposit: '$17,000',
+    payment: 'Paid via PayPal',
     status: 'Active',
     date: '25 Aug 2026',
   }

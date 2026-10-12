@@ -5,6 +5,7 @@ import {
   BookOpen, Heart, MessageSquare, BadgeCheck, ArrowRight, TrendingUp, Star, ShieldCheck
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth.js'
+import { apiRequest } from '../../services/api.js'
 import { propertyService } from '../../services/propertyService.js'
 
 const pageVariants = {
@@ -24,7 +25,7 @@ export default function Dashboard() {
   const [bookings, setBookings] = useState([])
   useEffect(() => {
     propertyService.getAllProperties().then(setProperties)
-    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/resident/bookings`, { headers: { Authorization: `Bearer ${localStorage.getItem('nestora_token')}` } }).then(response => response.json()).then(result => setBookings(result.data || []))
+    apiRequest('/resident/bookings').then(result => setBookings(result.data || []))
   }, [])
   const activeBookings = bookings.filter(b => !['Cancelled', 'Completed'].includes(b.status)).length
 
@@ -93,7 +94,7 @@ export default function Dashboard() {
                   </div>
                   <small>{prop.location}</small>
                   <div className="r-property-row-meta">
-                    <span className="r-price">{prop.price}</span>
+                    <span className="r-price">{String(prop.price || '').replace('Rs.', '$').replace('₹', '$')}</span>
                     <span className="r-rating"><Star size={12} fill="currentColor" /> {prop.rating}</span>
                   </div>
                 </div>
