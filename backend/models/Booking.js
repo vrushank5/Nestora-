@@ -8,6 +8,7 @@ const bookingSchema = new mongoose.Schema(
       sparse: true,
     },
     residentId: { type: Number, index: true },
+    ownerId: { type: Number, index: true },
     propertyId: { type: Number, index: true },
     roomId: { type: Number, index: true },
 

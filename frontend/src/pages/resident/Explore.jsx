@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search, SlidersHorizontal, Heart, GitCompare, ShieldCheck, Star, MapPin, X, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useAuth } from '../../context/useAuth.js'
 import { SkeletonCard } from '../../components/Skeleton.jsx'
@@ -9,7 +9,8 @@ import { getImageUrl } from '../../services/api.js'
 
 export default function Explore() {
   const { user } = useAuth()
-  const [query, setQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const query = searchParams.get('search') || ''
   const [budget, setBudget] = useState('Any')
   const [gender, setGender] = useState('Any')
   const [room, setRoom] = useState('Any')
@@ -87,9 +88,14 @@ export default function Explore() {
           <input
             placeholder='Search by city, area, college or company... e.g. "Bodakdev under $500"'
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => {
+              const nextParams = new URLSearchParams(searchParams)
+              if (e.target.value) nextParams.set('search', e.target.value)
+              else nextParams.delete('search')
+              setSearchParams(nextParams, { replace: true })
+            }}
           />
-          {query && <button className="r-search-clear" onClick={() => setQuery('')}><X size={16} /></button>}
+          {query && <button className="r-search-clear" onClick={() => setSearchParams({}, { replace: true })}><X size={16} /></button>}
         </div>
         <button className="ghost-button compact-button r-filter-toggle" onClick={() => setShowFilters(!showFilters)}>
           <SlidersHorizontal size={16} /> Filters {showFilters ? '↑' : '↓'}
@@ -184,7 +190,7 @@ export default function Explore() {
           <Search size={42} />
           <h3>No properties found</h3>
           <p>Try adjusting your search terms or filters.</p>
-          <button className="primary-button compact-button" onClick={() => { setQuery(''); setBudget('Any'); setGender('Any') }}>
+          <button className="primary-button compact-button" onClick={() => { setSearchParams({}, { replace: true }); setBudget('Any'); setGender('Any') }}>
             Clear Search
           </button>
         </div>

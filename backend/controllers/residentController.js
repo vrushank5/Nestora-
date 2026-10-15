@@ -5,6 +5,102 @@ const Complaint = require("../models/Complaint");
 const Visit = require("../models/Visit");
 const Property = require("../models/Property");
 const User = require("../models/User");
+const getResidentProfileRecord = (userId) =>
+  User.findOne({ userId: Number(userId), roleId: 3 })
+    .select("userId roleId name email mobile gender address occupation imageUrl isActive")
+    .lean();
+
+const getResidentProfile = async (req, res) => {
+  try {
+    const profile = await getResidentProfileRecord(req.user.userId);
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Resident account not found" });
+    }
+    return res.json({ success: true, data: profile });
+  } catch (error) {
+    console.error("getResidentProfile error:", error);
+    return res.status(500).json({ success: false, message: "Failed to load resident profile" });
+  }
+};
+
+const updateResidentProfile = async (req, res) => {
+  const { firstName, lastName, mobile, gender, address, occupation } = req.body || {};
+  const cleanFirstName = typeof firstName === "string" ? firstName.trim() : "";
+  const cleanLastName = typeof lastName === "string" ? lastName.trim() : "";
+  const cleanMobile = typeof mobile === "string" ? mobile.trim() : "";
+  const cleanGender = typeof gender === "string" ? gender.trim() : "";
+  const cleanAddress = typeof address === "string" ? address.trim() : "";
+  const cleanOccupation = typeof occupation === "string" ? occupation.trim() : "";
+  const valid =
+    cleanFirstName.length > 0 &&
+    cleanFirstName.length <= 80 &&
+    cleanLastName.length > 0 &&
+    cleanLastName.length <= 80 &&
+    /^[+]?[\d\s().-]{7,20}$/.test(cleanMobile) &&
+    cleanGender.length > 0 &&
+    cleanGender.length <= 40 &&
+    cleanAddress.length > 0 &&
+    cleanAddress.length <= 300 &&
+    cleanOccupation.length > 0 &&
+    cleanOccupation.length <= 120;
+
+  if (!valid) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter valid names, phone number, gender, address, and occupation.",
+    });
+  }
+
+  try {
+    const profile = await User.findOneAndUpdate(
+      { userId: Number(req.user.userId), roleId: 3 },
+      {
+        $set: {
+          name: `${cleanFirstName} ${cleanLastName}`,
+          mobile: cleanMobile,
+          gender: cleanGender,
+          address: cleanAddress,
+          occupation: cleanOccupation,
+        },
+      },
+      { new: true, runValidators: true },
+    )
+      .select("userId roleId name email mobile gender address occupation imageUrl isActive")
+      .lean();
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Resident account not found" });
+    }
+    return res.json({ success: true, data: profile, message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("updateResidentProfile error:", error);
+    return res.status(500).json({ success: false, message: "Failed to save resident profile" });
+  }
+};
+
+const uploadResidentProfileImage = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: "Choose a profile image to upload" });
+  }
+
+  try {
+    const imageUrl = `/uploads/profiles/${req.file.filename}`;
+    const profile = await User.findOneAndUpdate(
+      { userId: Number(req.user.userId), roleId: 3 },
+      { $set: { imageUrl } },
+      { new: true, runValidators: true },
+    )
+      .select("userId roleId name email mobile gender address occupation imageUrl isActive")
+      .lean();
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Resident account not found" });
+    }
+    return res.json({ success: true, data: profile, message: "Profile photo updated" });
+  } catch (error) {
+    console.error("uploadResidentProfileImage error:", error);
+    return res.status(500).json({ success: false, message: "Failed to save profile photo" });
+  }
+};
+
 const {
   createPaypalOrder,
   capturePaypalOrder,
@@ -13,6 +109,7 @@ const {
   getConfiguredRecipients,
   sendNestoraEmail,
 } = require("../services/emailService");
+const { createNotification, notifyActiveRole, notifySafely } = require("../services/notificationService");
 
 const requireResident = (req, res, next) => {
   if (Number(req.user?.roleId) !== 3)
@@ -32,9 +129,9 @@ const residentQuery = (req) => ({
 const toDateString = (value = new Date()) =>
   new Date(value).toLocaleDateString("en-GB");
 
-const getResidentProfile = async (req) =>
+const loadResidentProfileForActivity = async (req) =>
   User.findOne({ userId: Number(req.user.userId) })
-    .select("name email mobile address occupation")
+    .select("userId name email mobile gender address occupation imageUrl")
     .lean();
 
 const getPropertyWithOwner = async (propertyId) => {
@@ -44,7 +141,7 @@ const getPropertyWithOwner = async (propertyId) => {
   }).lean();
   if (!property?.ownerId) return { property, owner: null };
   const owner = await User.findOne({ userId: Number(property.ownerId) })
-    .select("name email mobile")
+    .select("userId name email mobile")
     .lean();
   return { property, owner };
 };
@@ -82,6 +179,54 @@ const notifyBookingFlow = async ({
     payment: `Nestora payment update - ${details.bookingId}`,
     visit: `Nestora visit scheduled - ${details.bookingId || details.property}`,
   };
+
+  const title = type === "payment"
+    ? "Payment update"
+    : type === "visit"
+      ? "Visit scheduled"
+      : "Booking request submitted";
+  const notificationMessage = type === "payment"
+    ? `${details.property || "Your property"}: payment ${details.paymentStatus || "recorded"} for ${details.bookingId || details.transactionId || "your booking"}.`
+    : type === "visit"
+      ? `Your visit to ${details.property || "the property"} has been scheduled.`
+      : `Your booking request for ${details.property || "the property"} has been submitted.`;
+  const notificationType = type === "payment" ? "payment" : type === "visit" ? "visit" : "booking";
+  const notificationTasks = [];
+  if (resident?.userId) {
+    notificationTasks.push(notifySafely("Resident activity", () => createNotification({
+        recipientId: resident.userId,
+        roleId: 3,
+        type: notificationType,
+        title,
+        message: notificationMessage,
+        link: type === "payment" ? "/resident/payments" : type === "visit" ? "/resident/visits" : "/resident/bookings",
+      })));
+  }
+  if (owner?.userId) {
+    notificationTasks.push(notifySafely("Owner activity", () => createNotification({
+        recipientId: owner.userId,
+        roleId: 2,
+        type: notificationType,
+        title: type === "booking" ? "New booking request" : type === "visit" ? "New property visit" : "Resident payment update",
+        message: type === "booking"
+          ? `${details.resident || "A resident"} requested a stay at ${details.property || "your property"}.`
+          : type === "visit"
+            ? `${details.resident || "A resident"} scheduled a visit to ${details.property || "your property"}.`
+            : `${details.resident || "A resident"} recorded a ${details.paymentStatus || "payment"} for ${details.property || "your property"}.`,
+        link: type === "booking" ? "/owner/bookings" : type === "visit" ? "/owner/visits" : "/owner/payments",
+        actorId: resident?.userId,
+        actorRoleId: 3,
+      })));
+  }
+  notificationTasks.push(notifySafely("Admin activity", () => notifyActiveRole(1, {
+      type: notificationType,
+      title: `New ${type} activity`,
+      message: notificationMessage,
+      link: `/admin/${type === "visit" ? "visits" : type === "payment" ? "payments" : "bookings"}`,
+      actorId: resident?.userId,
+      actorRoleId: 3,
+    })));
+  await Promise.all(notificationTasks);
 
   try {
     await sendNestoraEmail({
@@ -184,7 +329,7 @@ const createResidentBooking = async (req, res) => {
     const count = await Booking.countDocuments();
     const bookingId = `BK-${1000 + count + 1}`;
     const [residentProfile, propertyBundle] = await Promise.all([
-      getResidentProfile(req),
+      loadResidentProfileForActivity(req),
       getPropertyWithOwner(propertyId),
     ]);
     const propertyDoc = propertyBundle.property;
@@ -258,6 +403,39 @@ const cancelResidentBooking = async (req, res) => {
       booking.payment = "Refunded";
     }
     await booking.save();
+    const ownerId = booking.ownerId || (booking.propertyId
+      ? (await Property.findOne({ propertyId: booking.propertyId }).select("ownerId").lean())?.ownerId
+      : null);
+    await Promise.all([
+      notifySafely("Resident cancellation", () => createNotification({
+        recipientId: Number(req.user.userId),
+        roleId: 3,
+        type: "booking",
+        title: "Booking cancelled",
+        message: `Your booking ${booking.bookingId || ""} was cancelled.`,
+        link: "/resident/bookings",
+      })),
+      notifySafely("Admin booking cancellation", () => notifyActiveRole(1, {
+        type: "booking",
+        title: "Resident cancelled a booking",
+        message: `Booking ${booking.bookingId || ""} was cancelled by the resident.`,
+        link: "/admin/bookings",
+        actorId: Number(req.user.userId),
+        actorRoleId: 3,
+      })),
+    ]);
+    if (ownerId) {
+      await notifySafely("Owner booking cancellation", () => createNotification({
+        recipientId: ownerId,
+        roleId: 2,
+        type: "booking",
+        title: "Resident cancelled a booking",
+        message: `Booking ${booking.bookingId || ""} was cancelled by the resident.`,
+        link: "/owner/bookings",
+        actorId: Number(req.user.userId),
+        actorRoleId: 3,
+      }));
+    }
 
     return res.json({
       success: true,
@@ -280,7 +458,7 @@ const createResidentPayment = async (req, res) => {
     const transactionId = `TXN-${9000 + count + 1}`;
     const today = toDateString();
     const [residentProfile, propertyBundle] = await Promise.all([
-      getResidentProfile(req),
+      loadResidentProfileForActivity(req),
       getPropertyWithOwner(propertyId),
     ]);
     const existingBooking = bookingId
@@ -412,7 +590,7 @@ const createResidentVisit = async (req, res) => {
     const count = await Visit.countDocuments();
     const visitId = `VST-${100 + count + 1}`;
     const [residentProfile, propertyBundle] = await Promise.all([
-      getResidentProfile(req),
+      loadResidentProfileForActivity(req),
       getPropertyWithOwner(propertyId),
     ]);
 
@@ -579,7 +757,7 @@ const paypalCaptureOrder = async (req, res) => {
     const capturedAmount = captureUnit?.amount?.value || amount;
     const today = toDateString();
     const [residentProfile, propertyBundle] = await Promise.all([
-      getResidentProfile(req),
+      loadResidentProfileForActivity(req),
       getPropertyWithOwner(propertyId),
     ]);
 
@@ -676,6 +854,9 @@ const paypalCaptureOrder = async (req, res) => {
 
 module.exports = {
   requireResident,
+  getResidentProfile,
+  updateResidentProfile,
+  uploadResidentProfileImage,
   getResidentSummary,
   getResidentData,
   createResidentBooking,

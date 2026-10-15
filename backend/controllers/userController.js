@@ -6,6 +6,7 @@ const Room = require("../models/Room");
 const Review = require("../models/Review");
 const Complaint = require("../models/Complaint");
 const Visit = require("../models/Visit");
+const { createNotification, notifySafely } = require("../services/notificationService");
 
 const requireAdmin = (req, res, next) => {
   if (Number(req.user?.roleId) !== 1) {
@@ -14,6 +15,64 @@ const requireAdmin = (req, res, next) => {
       .json({ success: false, message: "Admin access required" });
   }
   return next();
+};
+
+const getAdminProfile = async (req, res) => {
+  try {
+    const admin = await User.findOne({
+      userId: Number(req.user.userId),
+      roleId: 1,
+    })
+      .select("userId roleId name email mobile imageUrl isActive")
+      .lean();
+
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin account not found" });
+    }
+
+    return res.json({ success: true, data: admin });
+  } catch (error) {
+    console.error("getAdminProfile error:", error);
+    return res.status(500).json({ success: false, message: "Failed to load admin profile" });
+  }
+};
+
+const updateAdminProfile = async (req, res) => {
+  const body = req.body || {};
+  const name = typeof body.name === "string" ? body.name.trim() : "";
+  const mobile = typeof body.mobile === "string" ? body.mobile.trim() : "";
+
+  if (!name || name.length > 100) {
+    return res.status(400).json({
+      success: false,
+      message: "Name is required and must be 100 characters or fewer",
+    });
+  }
+  if (!mobile || mobile.length > 30) {
+    return res.status(400).json({
+      success: false,
+      message: "Phone number is required and must be 30 characters or fewer",
+    });
+  }
+
+  try {
+    const admin = await User.findOneAndUpdate(
+      { userId: Number(req.user.userId), roleId: 1 },
+      { $set: { name, mobile } },
+      { new: true, runValidators: true },
+    )
+      .select("userId roleId name email mobile imageUrl isActive")
+      .lean();
+
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin account not found" });
+    }
+
+    return res.json({ success: true, data: admin, message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("updateAdminProfile error:", error);
+    return res.status(500).json({ success: false, message: "Failed to update admin profile" });
+  }
 };
 
 const getResidents = async (req, res) => {
@@ -144,10 +203,23 @@ const updateBookingStatus = async (req, res) => {
       return res.json({ success: true, message: `Booking status updated to ${status} (static mode)`, data: { id, status } });
     }
 
+    const statusChanged = booking.status !== status;
     booking.status = status;
     if (status === "Approved" || status === "Active") booking.payment = "Paid";
     if (status === "Cancelled") booking.payment = "Refunded";
     await booking.save();
+    if (statusChanged && booking.residentId) {
+      await notifySafely("Admin booking status", () => createNotification({
+        recipientId: booking.residentId,
+        roleId: 3,
+        type: "booking",
+        title: "Booking status updated",
+        message: `Your booking ${booking.bookingId || ""} is now ${booking.status}.`,
+        link: "/resident/bookings",
+        actorId: Number(req.user.userId),
+        actorRoleId: 1,
+      }));
+    }
 
     return res.json({
       success: true,
@@ -178,8 +250,21 @@ const updatePropertyVerificationStatus = async (req, res) => {
         .json({ success: false, message: "Property not found" });
     }
 
+    const statusChanged = property.verificationStatus !== status;
     property.verificationStatus = status;
     await property.save();
+    if (statusChanged) {
+      await notifySafely("Property verification", () => createNotification({
+        recipientId: property.ownerId,
+        roleId: 2,
+        type: "property",
+        title: "Property verification updated",
+        message: `${property.name} has been ${status.toLowerCase()} by the Nestora team.`,
+        link: "/owner/properties",
+        actorId: Number(req.user.userId),
+        actorRoleId: 1,
+      }));
+    }
 
     return res.json({
       success: true,
@@ -438,6 +523,8 @@ const getAdminVisits = async (req, res) => {
 };
 
 module.exports = {
+  getAdminProfile,
+  updateAdminProfile,
   getResidents,
   getOwners,
   getUsers,

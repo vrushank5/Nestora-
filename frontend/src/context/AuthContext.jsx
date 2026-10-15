@@ -44,6 +44,13 @@ export function AuthProvider({ children }) {
     setUser(nextUser)
   }, [])
 
+  const updateUser = useCallback((updates) => {
+    if (!user) return
+    const nextUser = { ...user, ...updates }
+    if (token) saveAuthSession({ token, user: nextUser })
+    setUser(nextUser)
+  }, [token, user])
+
   const logout = useCallback(() => {
     clearAuthSession()
     setToken(null)
@@ -64,10 +71,11 @@ export function AuthProvider({ children }) {
       authChecking,
       isAuthenticated: Boolean(token && user),
       login,
+      updateUser,
       logout,
       getCurrentUser,
     }),
-    [authChecking, login, logout, token, user],
+    [authChecking, login, logout, token, updateUser, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

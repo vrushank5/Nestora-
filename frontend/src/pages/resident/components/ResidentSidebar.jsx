@@ -3,10 +3,11 @@ import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Search, GitCompare, Heart, BookOpen, CreditCard,
   CalendarDays, AlertTriangle, MessageSquare, Star, Bell, User,
-  Settings, HelpCircle, LogOut, X, Building2
+  Settings, HelpCircle, LogOut, X
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api.js'
 import NestoraLogo from '../../../components/NestoraLogo.jsx'
+import { useNotifications } from '../../../context/useNotifications.js'
 
 const navGroups = [
   {
@@ -52,6 +53,7 @@ export default function ResidentSidebar({ user, isOpen, setIsOpen, onLogout }) {
   const location = useLocation()
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'R'
   const [summary, setSummary] = useState({})
+  const { unreadCount } = useNotifications()
 
   useEffect(() => {
     let active = true
@@ -73,6 +75,7 @@ export default function ResidentSidebar({ user, isOpen, setIsOpen, onLogout }) {
     complaints: summary.complaints,
     saved: savedHomes.length,
     reviews: summary.reviews,
+    notifications: unreadCount,
   }
 
   return (

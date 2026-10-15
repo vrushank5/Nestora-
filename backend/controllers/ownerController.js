@@ -2,11 +2,13 @@ const User = require("../models/User");
 const Property = require("../models/Property");
 const Booking = require("../models/Booking");
 const Payment = require("../models/Payment");
+const Room = require("../models/Room");
 const Review = require("../models/Review");
 const Menu = require("../models/Menu");
 const Complaint = require("../models/Complaint");
 const Visit = require("../models/Visit");
 const bcrypt = require("bcryptjs");
+const { createNotification, notifySafely } = require("../services/notificationService");
 
 const defaultOwnerSettings = {
   notifications: {
@@ -29,6 +31,98 @@ const defaultOwnerSettings = {
   },
 };
 
+const getOwnerProfile = async (req, res) => {
+  try {
+    const owner = await User.findOne({
+      userId: Number(req.user.userId),
+      roleId: 2,
+    })
+      .select("userId roleId name email mobile address occupation imageUrl isActive")
+      .lean();
+    if (!owner) {
+      return res.status(404).json({ success: false, message: "Owner account not found" });
+    }
+    return res.json({ success: true, data: owner });
+  } catch (error) {
+    console.error("getOwnerProfile error:", error);
+    return res.status(500).json({ success: false, message: "Failed to load owner profile" });
+  }
+};
+
+const updateOwnerProfile = async (req, res) => {
+  const { firstName, lastName, mobile, address, occupation } = req.body || {};
+  const cleanFirstName = typeof firstName === "string" ? firstName.trim() : "";
+  const cleanLastName = typeof lastName === "string" ? lastName.trim() : "";
+  const cleanMobile = typeof mobile === "string" ? mobile.trim() : "";
+  const cleanAddress = typeof address === "string" ? address.trim() : "";
+  const cleanOccupation = typeof occupation === "string" ? occupation.trim() : "";
+  const valid =
+    cleanFirstName.length > 0 &&
+    cleanFirstName.length <= 80 &&
+    cleanLastName.length > 0 &&
+    cleanLastName.length <= 80 &&
+    /^[+]?[\d\s().-]{7,20}$/.test(cleanMobile) &&
+    cleanAddress.length > 0 &&
+    cleanAddress.length <= 300 &&
+    cleanOccupation.length > 0 &&
+    cleanOccupation.length <= 120;
+
+  if (!valid) {
+    return res.status(400).json({
+      success: false,
+      message: "Enter valid names, a phone number, business name, and address.",
+    });
+  }
+
+  try {
+    const owner = await User.findOneAndUpdate(
+      { userId: Number(req.user.userId), roleId: 2 },
+      {
+        $set: {
+          name: `${cleanFirstName} ${cleanLastName}`,
+          mobile: cleanMobile,
+          address: cleanAddress,
+          occupation: cleanOccupation,
+        },
+      },
+      { new: true, runValidators: true },
+    )
+      .select("userId roleId name email mobile address occupation imageUrl isActive")
+      .lean();
+    if (!owner) {
+      return res.status(404).json({ success: false, message: "Owner account not found" });
+    }
+    return res.json({ success: true, data: owner, message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("updateOwnerProfile error:", error);
+    return res.status(500).json({ success: false, message: "Failed to save owner profile" });
+  }
+};
+
+const uploadOwnerProfileImage = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: "Choose a profile image to upload" });
+  }
+
+  try {
+    const imageUrl = `/uploads/profiles/${req.file.filename}`;
+    const owner = await User.findOneAndUpdate(
+      { userId: Number(req.user.userId), roleId: 2 },
+      { $set: { imageUrl } },
+      { new: true, runValidators: true },
+    )
+      .select("userId roleId name email mobile address occupation imageUrl isActive")
+      .lean();
+    if (!owner) {
+      return res.status(404).json({ success: false, message: "Owner account not found" });
+    }
+    return res.json({ success: true, data: owner, message: "Profile photo updated" });
+  } catch (error) {
+    console.error("uploadOwnerProfileImage error:", error);
+    return res.status(500).json({ success: false, message: "Failed to save profile photo" });
+  }
+};
+
 const requireOwner = (req, res, next) => {
   if (Number(req.user?.roleId) !== 2)
     return res
@@ -40,6 +134,25 @@ const requireOwner = (req, res, next) => {
 const getOwnerBookingQuery = async (ownerId) => {
   const propertyIds = await Property.find({ ownerId }).distinct("propertyId");
   return { $or: [{ ownerId }, { propertyId: { $in: propertyIds } }] };
+};
+
+const getOwnerPayments = async (ownerId) => {
+  const [propertyIds, bookings] = await Promise.all([
+    Property.find({ ownerId }).distinct("propertyId"),
+    Booking.find(await getOwnerBookingQuery(ownerId))
+      .select("bookingId")
+      .lean(),
+  ]);
+  const bookingIds = bookings.map((booking) => booking.bookingId).filter(Boolean);
+  return Payment.find({
+    $or: [
+      { ownerId },
+      { propertyId: { $in: propertyIds } },
+      { bookingId: { $in: bookingIds } },
+    ],
+  })
+    .sort({ createdAt: -1 })
+    .lean();
 };
 
 const getOwnerData = async (req, res) => {
@@ -68,11 +181,86 @@ const getOwnerData = async (req, res) => {
       return res.json({ success: true, data: records });
     }
 
+    if (collection === "residents") {
+      const bookings = await Booking.find({
+        $and: [
+          await getOwnerBookingQuery(ownerId),
+          { status: { $in: ["Approved", "Active"] } },
+        ],
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+      const residentIds = [
+        ...new Set(bookings.map((booking) => booking.residentId).filter(Boolean)),
+      ];
+      const propertyIds = [
+        ...new Set(bookings.map((booking) => booking.propertyId).filter(Boolean)),
+      ];
+      const roomIds = [
+        ...new Set(bookings.map((booking) => booking.roomId).filter(Boolean)),
+      ];
+      const [residents, properties, rooms] = await Promise.all([
+        residentIds.length
+          ? User.find({ userId: { $in: residentIds } })
+              .select("userId name")
+              .lean()
+          : [],
+        propertyIds.length
+          ? Property.find({ propertyId: { $in: propertyIds } })
+              .select("propertyId name")
+              .lean()
+          : [],
+        roomIds.length
+          ? Room.find({ roomId: { $in: roomIds } })
+              .select("roomId roomNumber")
+              .lean()
+          : [],
+      ]);
+      const residentById = new Map(
+        residents.map((resident) => [resident.userId, resident]),
+      );
+      const propertyById = new Map(
+        properties.map((property) => [property.propertyId, property]),
+      );
+      const roomById = new Map(rooms.map((room) => [room.roomId, room]));
+      const records = bookings.map((booking) => ({
+        id: booking.bookingId || String(booking._id),
+        name:
+          residentById.get(booking.residentId)?.name ||
+          booking.resident ||
+          "Resident",
+        property:
+          propertyById.get(booking.propertyId)?.name ||
+          booking.property ||
+          "Not assigned",
+        room:
+          roomById.get(booking.roomId)?.roomNumber ||
+          booking.room ||
+          "Not assigned",
+        moveIn: booking.date || "Not available",
+        rent: Number(booking.amount) || 0,
+        payment: booking.payment || "Pending",
+        status: booking.status,
+      }));
+      return res.json({ success: true, data: records });
+    }
+
+    if (collection === "payments") {
+      const records = await getOwnerPayments(ownerId);
+      return res.json({
+        success: true,
+        data: records.map((payment) => ({
+          ...payment,
+          id: payment.transactionId || String(payment._id),
+          date: payment.date || "Not available",
+          status: payment.status || "Pending",
+        })),
+      });
+    }
+
     const query = { ownerId };
     const Model = {
       bookings: Booking,
-      payments: Payment,
-      residents: User,
     }[collection];
     if (!Model) return res.json({ success: true, data: [] });
     const records = await Model.find(query).sort({ createdAt: -1 }).lean();
@@ -112,9 +300,22 @@ const updateOwnerBookingStatus = async (req, res) => {
         .json({ success: false, message: "Booking not found" });
     }
 
+    const statusChanged = booking.status !== status;
     booking.ownerId = ownerId;
     booking.status = status;
     await booking.save();
+    if (statusChanged && booking.residentId) {
+      await notifySafely("Owner booking status", () => createNotification({
+        recipientId: booking.residentId,
+        roleId: 3,
+        type: "booking",
+        title: "Booking status updated",
+        message: `Your booking ${booking.bookingId || ""} is now ${status}.`,
+        link: "/resident/bookings",
+        actorId: ownerId,
+        actorRoleId: 2,
+      }));
+    }
     return res.json({ success: true, data: booking });
   } catch (error) {
     return res
@@ -131,7 +332,6 @@ const getOwnerSummary = async (req, res) => {
       properties,
       bookings,
       payments,
-      residents,
       complaints,
       reviews,
       visits,
@@ -140,8 +340,7 @@ const getOwnerSummary = async (req, res) => {
         .select("isActive priceValue occupancy rating")
         .lean(),
       Booking.find(bookingQuery).lean(),
-      Payment.find({ ownerId }).lean(),
-      User.find({ roleId: 3, ownerId }).countDocuments(),
+      getOwnerPayments(ownerId),
       Complaint.countDocuments({ ownerId }),
       Review.countDocuments({ ownerId }),
       Visit.countDocuments({ ownerId }),
@@ -154,6 +353,16 @@ const getOwnerSummary = async (req, res) => {
         sum + Number(String(payment.amount || 0).replace(/[^0-9.]/g, "")),
       0,
     );
+    const residents = new Set(
+      bookings
+        .filter((booking) =>
+          ["approved", "active"].includes(
+            String(booking.status || "").toLowerCase(),
+          ),
+        )
+        .map((booking) => booking.residentId)
+        .filter((residentId) => residentId != null),
+    ).size;
     return res.json({
       success: true,
       data: {
@@ -380,6 +589,9 @@ const updateOwnerMenu = async (req, res) => {
 
 module.exports = {
   requireOwner,
+  getOwnerProfile,
+  updateOwnerProfile,
+  uploadOwnerProfileImage,
   getOwnerData,
   updateOwnerBookingStatus,
   getOwnerSummary,

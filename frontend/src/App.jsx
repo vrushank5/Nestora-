@@ -61,6 +61,7 @@ import OwnerPropertyEdit from './pages/owner/properties/PropertyEdit.jsx'
 import OwnerPropertyDetail from './pages/owner/properties/PropertyDetail.jsx'
 import OwnerRooms from './pages/owner/Rooms.jsx'
 import OwnerResidents from './pages/owner/Residents.jsx'
+import OwnerMessages from './pages/owner/Messages.jsx'
 import OwnerBookings from './pages/owner/Bookings.jsx'
 import OwnerPayments from './pages/owner/Payments.jsx'
 import OwnerVisits from './pages/owner/Visits.jsx'
@@ -73,6 +74,7 @@ import OwnerNotifications from './pages/owner/Notifications.jsx'
 import OwnerProfile from './pages/owner/Profile.jsx'
 import OwnerSettings from './pages/owner/Settings.jsx'
 import { useAuth } from './context/useAuth.js'
+import { NotificationProvider } from './context/NotificationContext.jsx'
 
 function App() {
   const location = useLocation()
@@ -90,6 +92,7 @@ function App() {
   const isLoading = splashLoading || authChecking
 
   return (
+    <NotificationProvider>
     <AnimatePresence mode="wait">
       {isLoading ? (
         <AppLoader key="app-loader" />
@@ -152,6 +155,7 @@ function App() {
               <Route path="properties/:id/edit" element={<OwnerPropertyEdit />} />
               <Route path="rooms" element={<OwnerRooms />} />
               <Route path="residents" element={<OwnerResidents />} />
+              <Route path="messages" element={<OwnerMessages />} />
               <Route path="bookings" element={<OwnerBookings />} />
               <Route path="payments" element={<OwnerPayments />} />
               <Route path="visits" element={<OwnerVisits />} />
@@ -208,6 +212,7 @@ function App() {
         </motion.div>
       )}
     </AnimatePresence>
+    </NotificationProvider>
   )
 }
 

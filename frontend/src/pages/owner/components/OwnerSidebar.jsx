@@ -14,6 +14,7 @@ import {
   Sparkles, 
   BarChart3, 
   Bell, 
+  MessageSquare,
   UserCircle, 
   Settings, 
   LogOut,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api.js'
 import NestoraLogo from '../../../components/NestoraLogo.jsx'
+import { useNotifications } from '../../../context/useNotifications.js'
 
 const navGroups = [
   {
@@ -34,7 +36,8 @@ const navGroups = [
     items: [
       { id: 'properties', label: 'My Properties', icon: Building2, path: '/owner/properties' },
       { id: 'rooms', label: 'Rooms', icon: DoorClosed, path: '/owner/rooms' },
-      { id: 'residents', label: 'Residents', icon: Users, path: '/owner/residents' }
+      { id: 'residents', label: 'Residents', icon: Users, path: '/owner/residents' },
+      { id: 'messages', label: 'Messages', icon: MessageSquare, path: '/owner/messages' }
     ]
   },
   {
@@ -74,6 +77,7 @@ export default function OwnerSidebar({ user, isOpen, setIsOpen, onLogout }) {
   const location = useLocation()
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'O'
   const [summary, setSummary] = useState({})
+  const { unreadCount } = useNotifications()
 
   useEffect(() => {
     let active = true
@@ -96,6 +100,7 @@ export default function OwnerSidebar({ user, isOpen, setIsOpen, onLogout }) {
     visits: summary.visits,
     complaints: summary.complaints,
     reviews: summary.reviews,
+    notifications: unreadCount,
   }
 
   return (

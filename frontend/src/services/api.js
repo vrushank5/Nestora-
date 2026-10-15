@@ -97,3 +97,12 @@ export const ownerApi = {
       body: JSON.stringify({ currentPassword, newPassword }),
     }),
 }
+
+export const adminApi = {
+  getProfile: () => apiRequest('/admin/profile'),
+  updateProfile: (profile) =>
+    apiRequest('/admin/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profile),
+    }),
+}

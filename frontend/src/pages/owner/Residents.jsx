@@ -4,7 +4,13 @@ import { apiRequest } from '../../services/api.js'
 
 export default function Residents() {
   const [residents, setResidents] = useState([])
-  useEffect(() => { apiRequest('/owner/residents').then(response => setResidents(response.data || [])) }, [])
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    apiRequest('/owner/residents')
+      .then(response => setResidents(response.data || []))
+      .catch(err => setError(err.message || 'Unable to load residents.'))
+  }, [])
 
   return (
     <div className="owner-page">
@@ -23,6 +29,8 @@ export default function Residents() {
         <button className="ghost-button compact-button"><Filter size={16} /> Filter</button>
       </div>
 
+      {error && <div className="owner-error-banner" role="alert">{error}</div>}
+
       <div className="owner-table-wrapper 3d-tilt-card">
         <table className="owner-data-table">
           <thead>
@@ -37,7 +45,7 @@ export default function Residents() {
             </tr>
           </thead>
           <tbody>
-            {residents.map(res => (
+            {residents.length ? residents.map(res => (
               <tr key={res.id}>
                 <td>
                   <div className="resident-cell">
@@ -65,7 +73,13 @@ export default function Residents() {
                   <button className="icon-btn"><MoreVertical size={16} /></button>
                 </td>
               </tr>
-            ))}
+            )) : !error && (
+              <tr>
+                <td colSpan="7" className="text-center py-8 text-muted">
+                  No residents yet. Approved bookings will appear here.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

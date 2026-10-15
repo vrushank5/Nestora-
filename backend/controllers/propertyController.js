@@ -62,6 +62,7 @@ const normalizeProperty = (property) => {
 
     gender: property.gender || "Unisex",
     occupancy: property.occupancy || "New listing",
+    verificationStatus: property.verificationStatus || "Pending",
 
     description: property.description || "",
 

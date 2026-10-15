@@ -2,22 +2,47 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  MapPin, Star, ShieldCheck, Heart, GitCompare, CalendarDays, BookOpen,
+  MapPin, Star, ShieldCheck, Heart, GitCompare, CalendarDays, BookOpen, Image as ImageIcon,
   Wifi, Coffee, Car, Wind, Shield, Tv, Droplets, X, ChevronLeft, ChevronRight,
-  Phone, UtensilsCrossed, Zap, Sparkles, Dumbbell, Flame, CheckCircle2,
-  Share2, Copy, AlertTriangle, ArrowRight, ExternalLink, Bed, Clock, UserCheck
+  UtensilsCrossed, Zap, Sparkles, Dumbbell, Flame, CheckCircle2,
+  Share2, AlertTriangle, ExternalLink, Bed, Clock
 } from 'lucide-react'
 import { apiRequest, getImageUrl } from '../../services/api.js'
 import { propertyService } from '../../services/propertyService.js'
 import { useAuth } from '../../context/useAuth.js'
 
-// High-resolution fallback interior/exterior co-living images
-const FALLBACK_GALLERY = [
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85',
-  'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=85',
-  'https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1200&q=85',
-  'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=85',
-]
+const formatCurrency = (amount) => {
+  const value = Number(amount)
+  if (!Number.isFinite(value)) return 'Price unavailable'
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+const localDateString = (date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const dateAfterDays = (days) => {
+  const date = new Date()
+  date.setDate(date.getDate() + days)
+  return localDateString(date)
+}
+
+const isRoomAvailable = (room) => {
+  if (room?.status !== 'Available') return false
+  const availableCount = room.availableCount ?? (
+    room.capacity != null
+      ? Number(room.capacity) - Number(room.occupiedCount || 0)
+      : null
+  )
+  return availableCount == null || Number(availableCount) > 0
+}
 
 // Icon mapper for dynamic amenities
 const amenityIconMap = {
@@ -47,6 +72,8 @@ export default function PropertyDetail() {
   const [property, setProperty] = useState(null)
   const [rooms, setRooms] = useState([])
   const [reviews, setReviews] = useState([])
+  const [roomsError, setRoomsError] = useState('')
+  const [reviewsError, setReviewsError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState(null)
 
@@ -56,9 +83,7 @@ export default function PropertyDetail() {
   const [lightbox, setLightbox] = useState(false)
   const [selectedRoom, setSelectedRoom] = useState(null)
   const [moveInDate, setMoveInDate] = useState(() => {
-    const d = new Date()
-    d.setDate(d.getDate() + 2)
-    return d.toISOString().split('T')[0]
+    return dateAfterDays(2)
   })
   const [stayDuration, setStayDuration] = useState('6 Months')
   const [toastMsg, setToastMsg] = useState('')
@@ -66,24 +91,27 @@ export default function PropertyDetail() {
   // Modals
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [showVisitModal, setShowVisitModal] = useState(false)
-  const [showContactModal, setShowContactModal] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [bookingSuccessData, setBookingSuccessData] = useState(null)
   const [bookingError, setBookingError] = useState('')
+  const [visitError, setVisitError] = useState('')
+  const [brokenImages, setBrokenImages] = useState(() => new Set())
 
   // Visit Form State
   const [visitDate, setVisitDate] = useState(() => {
-    const d = new Date()
-    d.setDate(d.getDate() + 1)
-    return d.toISOString().split('T')[0]
+    return dateAfterDays(1)
   })
-  const [visitTimeSlot, setVisitTimeSlot] = useState('11:00 AM - 01:00 PM')
+  const [visitTimeSlot, setVisitTimeSlot] = useState('10:00 AM - 12:00 PM')
   const [visitNotes, setVisitNotes] = useState('')
 
   // Saved / Shortlist state
   const [saved, setSaved] = useState(() => {
-    const s = JSON.parse(localStorage.getItem(`saved_${user?.userId || 'guest'}`) || '[]')
-    return s.includes(Number(id)) || s.includes(String(id))
+    try {
+      const s = JSON.parse(localStorage.getItem(`saved_${user?.userId || 'guest'}`) || '[]')
+      return s.includes(Number(id)) || s.includes(String(id))
+    } catch {
+      return false
+    }
   })
 
   const showToast = (msg) => {
@@ -94,48 +122,36 @@ export default function PropertyDetail() {
   // Fetch Live Property, Rooms, and Reviews from Backend
   useEffect(() => {
     let active = true
-    setIsLoading(true)
-    setFetchError(null)
 
-    Promise.all([
-      propertyService.getPropertyById(id).catch(() => null),
-      apiRequest(`/rooms/property/${id}`).then(res => res.data || []).catch(() => []),
-      apiRequest(`/reviews/property/${id}`).then(res => res.data || []).catch(() => [])
+    Promise.allSettled([
+      propertyService.getPropertyById(id),
+      apiRequest(`/rooms/property/${id}`).then(res => res.data || []),
+      apiRequest(`/reviews/property/${id}`).then(res => res.data || [])
     ])
-      .then(([propData, roomsData, reviewsData]) => {
+      .then(([propertyResult, roomsResult, reviewsResult]) => {
         if (!active) return
 
-        if (!propData) {
-          throw new Error('Property listing could not be found or is inactive.')
-        }
+        if (propertyResult.status === 'rejected') throw propertyResult.reason
+        const propData = propertyResult.value
+        if (!propData) throw new Error('Property listing could not be found or is inactive.')
 
         setProperty(propData)
-        setReviews(reviewsData)
-
-        // Process dynamic rooms from backend or create fallback structured rooms based on property
-        if (roomsData.length > 0) {
+        setGalleryIdx(0)
+        setBrokenImages(new Set())
+        if (roomsResult.status === 'fulfilled') {
+          const roomsData = Array.isArray(roomsResult.value) ? roomsResult.value : []
           setRooms(roomsData)
-          setSelectedRoom(roomsData[0])
+          setSelectedRoom(roomsData.find(isRoomAvailable) || null)
         } else {
-          // Construct realistic room options using property prices & roomTypes
-          const basePrice = propData.priceValue || 9000
-          const types = propData.roomTypes?.length > 0 ? propData.roomTypes : ['Single', 'Double']
-          const generatedRooms = types.map((typeName, index) => {
-            const multiplier = typeName.toLowerCase().includes('single') ? 1.25 : typeName.toLowerCase().includes('triple') ? 0.8 : 1
-            const rentVal = Math.round(basePrice * multiplier)
-            return {
-              roomId: index + 1,
-              roomType: `${typeName} Sharing Suite`,
-              capacity: typeName.toLowerCase().includes('single') ? 1 : typeName.toLowerCase().includes('triple') ? 3 : 2,
-              availableCount: 2,
-              price: rentVal,
-              deposit: propData.securityDeposit != null ? Number(propData.securityDeposit) : rentVal * 2,
-              facilities: ['AC', 'Attached Washroom', 'Wi-Fi', 'Wardrobe', 'Study Desk'],
-              status: 'Available'
-            }
-          })
-          setRooms(generatedRooms)
-          setSelectedRoom(generatedRooms[0])
+          setRooms([])
+          setSelectedRoom(null)
+          setRoomsError(roomsResult.reason?.message || 'Unable to load room availability.')
+        }
+        if (reviewsResult.status === 'fulfilled') {
+          setReviews(Array.isArray(reviewsResult.value) ? reviewsResult.value : [])
+        } else {
+          setReviews([])
+          setReviewsError(reviewsResult.reason?.message || 'Unable to load property reviews.')
         }
       })
       .catch(err => {
@@ -153,19 +169,41 @@ export default function PropertyDetail() {
 
   // Images gallery list
   const galleryImages = useMemo(() => {
-    if (!property || !property.images || property.images.length === 0) {
-      return FALLBACK_GALLERY
-    }
-    const realImgs = property.images.map(img => getImageUrl(img))
-    // If fewer than 4 images, supplement with fallback images for rich gallery
-    if (realImgs.length < 4) {
-      return [...realImgs, ...FALLBACK_GALLERY.slice(realImgs.length)]
-    }
-    return realImgs
+    return (property?.images || []).map(getImageUrl).filter(Boolean)
   }, [property])
 
+  useEffect(() => {
+    if (!lightbox) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setLightbox(false)
+      if (event.key === 'ArrowLeft' && galleryImages.length) {
+        setGalleryIdx((index) => (index - 1 + galleryImages.length) % galleryImages.length)
+      }
+      if (event.key === 'ArrowRight' && galleryImages.length) {
+        setGalleryIdx((index) => (index + 1) % galleryImages.length)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [lightbox, galleryImages.length])
+
+  const markImageBroken = (src) => {
+    setBrokenImages((images) => new Set(images).add(src))
+  }
+
+  const availableRooms = useMemo(() => rooms.filter(isRoomAvailable), [rooms])
+  const reviewRating = reviews.length
+    ? reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length
+    : null
+
   const toggleSave = () => {
-    const s = JSON.parse(localStorage.getItem(`saved_${user?.userId || 'guest'}`) || '[]')
+    let s
+    try {
+      const parsed = JSON.parse(localStorage.getItem(`saved_${user?.userId || 'guest'}`) || '[]')
+      s = Array.isArray(parsed) ? parsed : []
+    } catch {
+      s = []
+    }
     const key = Number(id) || id
     const next = saved ? s.filter(x => x !== key && x !== String(key)) : [...s, key]
     localStorage.setItem(`saved_${user?.userId || 'guest'}`, JSON.stringify(next))
@@ -174,8 +212,13 @@ export default function PropertyDetail() {
   }
 
   const handleShare = () => {
-    navigator.clipboard?.writeText(window.location.href)
-    showToast('Listing link copied to clipboard! 📋')
+    if (!navigator.clipboard?.writeText) {
+      showToast('Sharing is not available in this browser.')
+      return
+    }
+    navigator.clipboard.writeText(window.location.href)
+      .then(() => showToast('Listing link copied to clipboard.'))
+      .catch(() => showToast('Unable to copy the listing link.'))
   }
 
   // Handle Instant Booking Submission
@@ -187,7 +230,22 @@ export default function PropertyDetail() {
 
     setBookingError('')
     setIsSubmitting(true)
-    const rentAmount = selectedRoom ? selectedRoom.price : (property.priceValue || 9000)
+    if (!selectedRoom || !isRoomAvailable(selectedRoom)) {
+      setBookingError('Select a room that is currently available before requesting a booking.')
+      setIsSubmitting(false)
+      return
+    }
+    if (!moveInDate || moveInDate < localDateString(new Date())) {
+      setBookingError('Choose a valid move-in date.')
+      setIsSubmitting(false)
+      return
+    }
+    const rentAmount = Number(selectedRoom.price)
+    if (!Number.isFinite(rentAmount) || rentAmount <= 0) {
+      setBookingError('This room does not have a valid monthly rent. Please contact support.')
+      setIsSubmitting(false)
+      return
+    }
 
     try {
       const propertyId = Number(property.propertyId || property.id)
@@ -206,7 +264,7 @@ export default function PropertyDetail() {
           securityDeposit: currentDeposit,
           resident: user.name,
           property: property.name,
-          room: selectedRoom?.roomType || 'Standard Room',
+          room: selectedRoom.roomType,
         })
       })
 
@@ -232,6 +290,7 @@ export default function PropertyDetail() {
       return
     }
 
+    setVisitError('')
     setIsSubmitting(true)
     try {
       await apiRequest('/resident/visits', {
@@ -246,21 +305,21 @@ export default function PropertyDetail() {
       })
 
       setShowVisitModal(false)
-      showToast(`Visit successfully scheduled for ${visitDate} (${visitTimeSlot})! 🎉`)
+      showToast(`Visit request sent for ${visitDate} (${visitTimeSlot}).`)
     } catch (err) {
       console.error('Visit schedule error:', err)
-      showToast(err.message || 'Failed to schedule visit. Please try again.')
+      setVisitError(err.message || 'Failed to schedule visit. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
   }
 
   // Pricing computations
-  const currentRent = selectedRoom ? Number(selectedRoom.price || 0) : (Number(property?.priceValue) || 9000)
-  const currentDeposit = selectedRoom?.deposit ?? (
-    property?.securityDeposit != null ? Number(property.securityDeposit) : currentRent * 2
-  )
+  const currentRent = selectedRoom ? Number(selectedRoom.price) : Number(property?.priceValue || 0)
+  const currentDeposit = selectedRoom?.deposit ?? Number(property?.securityDeposit || 0)
   const totalInitial = currentRent + currentDeposit
+  const canRequestBooking = Boolean(selectedRoom && isRoomAvailable(selectedRoom) && Number.isFinite(currentRent) && currentRent >= 0)
+  const verificationApproved = property?.verificationStatus === 'Approved'
 
   if (isLoading) {
     return (
@@ -306,80 +365,89 @@ export default function PropertyDetail() {
 
   return (
     <div className="r-page r-detail-page">
-      {/* V8 Navigation & Back Link */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div className="r-property-breadcrumb">
         <Link to="/resident/explore" className="r-back-link" style={{ marginBottom: 0 }}>
-          <ChevronLeft size={18} /> Back to Explore Verified PGs
+          <ChevronLeft size={18} /> Explore properties
         </Link>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="r-icon-btn-lg" onClick={handleShare} title="Share Listing">
+        <div className="r-property-actions">
+          <button className="r-icon-btn-lg" type="button" onClick={handleShare} title="Share listing" aria-label="Share listing">
             <Share2 size={17} />
           </button>
-          <button className={`r-icon-btn-lg ${saved ? 'r-saved' : ''}`} onClick={toggleSave} title="Save to Shortlist">
+          <button className={`r-icon-btn-lg ${saved ? 'r-saved' : ''}`} type="button" onClick={toggleSave} title={saved ? 'Remove from saved properties' : 'Save property'} aria-label={saved ? 'Remove from saved properties' : 'Save property'}>
             <Heart size={18} fill={saved ? 'currentColor' : 'none'} />
           </button>
-          <Link to="/resident/compare" className="r-icon-btn-lg" title="Compare Listings">
+          <Link to={`/resident/compare?property=${property.propertyId || property.id}`} className="r-icon-btn-lg" title="Compare listings" aria-label="Compare listings">
             <GitCompare size={18} />
           </Link>
         </div>
       </div>
 
-      {/* V8 Kicker Badge */}
-      <div>
-        <span className="r-v8-kicker">
-          <ShieldCheck size={14} /> VERIFIED CO-LIVING SUITE V8 · ID #{property.propertyId || property.id}
-        </span>
-      </div>
-
-      {/* V8 Hero Gallery Section */}
-      <div className="r-gallery">
-        <div className="r-gallery-main" onClick={() => setLightbox(true)} style={{ boxShadow: '0 12px 36px rgba(0,0,0,0.1)' }}>
-          <img src={galleryImages[galleryIdx]} alt={property.name} />
-          <button
-            className="r-gallery-prev"
-            onClick={e => {
-              e.stopPropagation()
-              setGalleryIdx((galleryIdx - 1 + galleryImages.length) % galleryImages.length)
-            }}
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            className="r-gallery-next"
-            onClick={e => {
-              e.stopPropagation()
-              setGalleryIdx((galleryIdx + 1) % galleryImages.length)
-            }}
-          >
-            <ChevronRight size={20} />
-          </button>
-
-          <div style={{ position: 'absolute', top: '16px', left: '16px', display: 'flex', gap: '8px' }}>
-            <span style={{ background: 'rgba(17,24,39,0.75)', color: '#fff', padding: '6px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: 700, backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <ShieldCheck size={13} color="#10b981" /> 100% Verified Property
+      <div className="r-property-identity">
+        <div className="r-property-badges">
+          {verificationApproved && <span className="r-verified-badge"><ShieldCheck size={13} /> Verified by Nestora</span>}
+          {property.gender && <span className="r-gender-badge">{property.gender} occupancy</span>}
+          {availableRooms.length > 0 && <span className="r-property-availability">{availableRooms.length} room{availableRooms.length === 1 ? '' : 's'} available</span>}
+        </div>
+        <h1 className="r-detail-title">{property.name}</h1>
+        <div className="r-property-location-rating">
+          <span><MapPin size={16} aria-hidden="true" /> {property.location || [property.area, property.city].filter(Boolean).join(', ')}</span>
+          {reviewRating != null && (
+            <span className="r-property-rating">
+              <Star size={15} fill="currentColor" aria-hidden="true" />
+              <strong>{reviewRating.toFixed(1)}</strong>
+              <span>({reviews.length} review{reviews.length === 1 ? '' : 's'})</span>
             </span>
-          </div>
-
-          <button className="r-gallery-tour">
-            📷 Photo {galleryIdx + 1} of {galleryImages.length} · Fullscreen
-          </button>
-        </div>
-
-        {/* Thumbnail Bar */}
-        <div className="r-gallery-thumbs" style={{ marginTop: '10px' }}>
-          {galleryImages.map((img, i) => (
-            <button
-              key={i}
-              className={`r-gallery-thumb ${i === galleryIdx ? 'active' : ''}`}
-              onClick={() => setGalleryIdx(i)}
-            >
-              <img src={img} alt={`Thumb ${i + 1}`} />
-            </button>
-          ))}
+          )}
         </div>
       </div>
 
-      {/* Lightbox Modal */}
+      <div className="r-gallery">
+        <div className="r-gallery-main">
+          {galleryImages.length > 0 && !brokenImages.has(galleryImages[galleryIdx]) ? (
+            <button className="r-gallery-image-button" type="button" onClick={() => setLightbox(true)} aria-label={`Open photo ${galleryIdx + 1} in fullscreen`}>
+              <img
+                src={galleryImages[galleryIdx]}
+                alt={`${property.name} — photo ${galleryIdx + 1}`}
+                onError={() => markImageBroken(galleryImages[galleryIdx])}
+              />
+            </button>
+          ) : (
+            <div className="r-gallery-empty" role="img" aria-label="No property photo available">
+              <ImageIcon size={36} />
+              <span>{galleryImages.length ? 'This photo is unavailable' : 'No property photos have been added yet'}</span>
+            </div>
+          )}
+          {galleryImages.length > 0 && (
+            <>
+              <span className="r-gallery-count">{galleryIdx + 1} / {galleryImages.length}</span>
+              <button className="r-gallery-tour" type="button" onClick={() => setLightbox(true)}>
+                View photos
+              </button>
+            </>
+          )}
+          {galleryImages.length > 1 && (
+            <>
+              <button className="r-gallery-prev" type="button" aria-label="Previous photo" onClick={() => setGalleryIdx((galleryIdx - 1 + galleryImages.length) % galleryImages.length)}>
+                <ChevronLeft size={20} />
+              </button>
+              <button className="r-gallery-next" type="button" aria-label="Next photo" onClick={() => setGalleryIdx((galleryIdx + 1) % galleryImages.length)}>
+                <ChevronRight size={20} />
+              </button>
+            </>
+          )}
+        </div>
+
+        {galleryImages.length > 1 && (
+          <div className="r-gallery-thumbs" aria-label="Property photos">
+            {galleryImages.map((img, i) => (
+              <button key={`${img}-${i}`} type="button" className={`r-gallery-thumb ${i === galleryIdx ? 'active' : ''}`} onClick={() => setGalleryIdx(i)} aria-label={`Show photo ${i + 1}`} aria-pressed={i === galleryIdx}>
+                {brokenImages.has(img) ? <ImageIcon size={20} /> : <img src={img} alt="" onError={() => markImageBroken(img)} />}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <AnimatePresence>
         {lightbox && (
           <motion.div
@@ -388,104 +456,75 @@ export default function PropertyDetail() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setLightbox(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Property photo gallery"
           >
             <div className="r-lightbox" onClick={e => e.stopPropagation()}>
-              <button className="close-modal-btn" onClick={() => setLightbox(false)}>
+              <button type="button" className="close-modal-btn" onClick={() => setLightbox(false)} aria-label="Close gallery">
                 <X size={18} />
               </button>
-              <img src={galleryImages[galleryIdx]} alt="Property High Res" />
+              {brokenImages.has(galleryImages[galleryIdx]) ? (
+                <div className="r-gallery-empty"><ImageIcon size={36} /><span>This photo is unavailable</span></div>
+              ) : (
+                <img src={galleryImages[galleryIdx]} alt={`${property.name} — photo ${galleryIdx + 1}`} onError={() => markImageBroken(galleryImages[galleryIdx])} />
+              )}
               <div className="r-lightbox-nav">
-                <button onClick={() => setGalleryIdx((galleryIdx - 1 + galleryImages.length) % galleryImages.length)}>
-                  <ChevronLeft size={22} />
-                </button>
+                {galleryImages.length > 1 && (
+                  <button type="button" aria-label="Previous photo" onClick={() => setGalleryIdx((galleryIdx - 1 + galleryImages.length) % galleryImages.length)}>
+                    <ChevronLeft size={22} />
+                  </button>
+                )}
                 <span>{galleryIdx + 1} / {galleryImages.length}</span>
-                <button onClick={() => setGalleryIdx((galleryIdx + 1) % galleryImages.length)}>
-                  <ChevronRight size={22} />
-                </button>
+                {galleryImages.length > 1 && (
+                  <button type="button" aria-label="Next photo" onClick={() => setGalleryIdx((galleryIdx + 1) % galleryImages.length)}>
+                    <ChevronRight size={22} />
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* V8 Key Metric Stat Cards */}
       <div className="r-v8-kpis">
         <div className="r-v8-kpi-card">
-          <div className="r-v8-kpi-icon" style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981' }}>
+          <div className="r-v8-kpi-icon">
             <Bed size={20} />
           </div>
           <div>
             <span className="r-v8-kpi-label">MONTHLY RENT</span>
-            <div className="r-v8-kpi-val" style={{ color: '#10b981' }}>
-              ${Number(property.priceValue || 500).toLocaleString('en-US')}<span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280' }}>/mo</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="r-v8-kpi-card">
-          <div className="r-v8-kpi-icon" style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}>
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <span className="r-v8-kpi-label">SECURITY DEPOSIT</span>
             <div className="r-v8-kpi-val">
-              ${Number(currentDeposit).toLocaleString('en-US')}
+              {formatCurrency(selectedRoom?.price ?? property.priceValue)}<span className="r-kpi-period"> / month</span>
             </div>
           </div>
         </div>
 
-        <div className="r-v8-kpi-card">
-          <div className="r-v8-kpi-icon" style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706' }}>
-            <Clock size={20} />
-          </div>
-          <div>
-            <span className="r-v8-kpi-label">OCCUPANCY STATUS</span>
-            <div className="r-v8-kpi-val" style={{ color: '#d97706', fontSize: '1rem' }}>
-              {property.occupancy || 'Available Now'}
+        {currentDeposit > 0 && (
+          <div className="r-v8-kpi-card">
+            <div className="r-v8-kpi-icon"><ShieldCheck size={20} /></div>
+            <div>
+              <span className="r-v8-kpi-label">SECURITY DEPOSIT</span>
+              <div className="r-v8-kpi-val">{formatCurrency(currentDeposit)}</div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="r-v8-kpi-card">
-          <div className="r-v8-kpi-icon" style={{ background: 'rgba(139,92,246,0.12)', color: '#8b5cf6' }}>
-            <UserCheck size={20} />
-          </div>
-          <div>
-            <span className="r-v8-kpi-label">BROKERAGE FEE</span>
-            <div className="r-v8-kpi-val" style={{ color: '#8b5cf6' }}>
-              $0 <span style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 700 }}>100% Zero</span>
+        {availableRooms.length > 0 && (
+          <div className="r-v8-kpi-card">
+            <div className="r-v8-kpi-icon"><Clock size={20} /></div>
+            <div>
+              <span className="r-v8-kpi-label">AVAILABILITY</span>
+              <div className="r-v8-kpi-val">{availableRooms.length} room{availableRooms.length === 1 ? '' : 's'} available</div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Main Grid: Left Details & Right Booking Card */}
       <div className="r-detail-grid">
-        {/* Left Column */}
         <div className="r-detail-info">
-          {/* Header Title & Badges */}
-          <div className="r-detail-header" style={{ marginBottom: '16px' }}>
-            <div>
-              <div className="r-detail-badges">
-                <span className="r-verified-badge"><ShieldCheck size={13} /> Verified by Nestora</span>
-                <span className="r-gender-badge">{property.gender || 'Unisex'}</span>
-                <span className="status-badge active">{property.occupancy || 'Available'}</span>
-              </div>
-              <h1 className="r-detail-title" style={{ fontWeight: 800, marginTop: '6px' }}>{property.name}</h1>
-              <div className="r-detail-meta" style={{ marginTop: '8px' }}>
-                <span>
-                  <MapPin size={15} color="var(--jade)" /> {property.location || `${property.area}, ${property.city}`}
-                </span>
-                <span>
-                  <Star size={15} fill="#f59e0b" color="#f59e0b" />
-                  <strong>{property.rating ? property.rating.toFixed(1) : '4.8'}</strong> · ({property.reviews || reviews.length || 14} verified resident reviews)
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* V8 Tab Navigation */}
-          <div className="r-v8-tabs-nav">
+          <nav className="r-v8-tabs-nav" aria-label="Property details sections" role="tablist">
             {[
               { id: 'overview', label: 'Overview' },
               { id: 'rooms', label: `Room Options (${rooms.length})` },
@@ -497,199 +536,155 @@ export default function PropertyDetail() {
               <button
                 key={t.id}
                 className={`r-v8-tab-btn ${activeTab === t.id ? 'active' : ''}`}
+                type="button"
+                role="tab"
+                id={`property-tab-${t.id}`}
+                aria-selected={activeTab === t.id}
+                aria-controls={`property-panel-${t.id}`}
                 onClick={() => setActiveTab(t.id)}
               >
                 {t.label}
               </button>
             ))}
-          </div>
+          </nav>
 
-          {/* Tab 1: Overview */}
           {(activeTab === 'overview' || activeTab === 'all') && (
-            <section className="r-detail-section">
+            <section className="r-detail-section" id="property-panel-overview" role="tabpanel" aria-labelledby="property-tab-overview">
               <h2>About this Property</h2>
-              <p className="muted-copy" style={{ fontSize: '0.96rem', lineHeight: 1.7 }}>
-                {property.description || 'Welcome to this fully managed modern co-living space designed for working professionals and students seeking premium comfort, high-speed connectivity, and vibrant community living.'}
-              </p>
+              {property.description
+                ? <p className="r-property-description">{property.description}</p>
+                : <p className="r-property-empty-copy">The property owner has not added a description yet.</p>}
 
-              <div style={{ marginTop: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                <div style={{ background: 'var(--paper-2)', padding: '12px 16px', borderRadius: '10px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', fontWeight: 700 }}>CITY &amp; REGION</span>
-                  <strong style={{ fontSize: '0.95rem', textTransform: 'capitalize' }}>{property.city}, {property.area}</strong>
-                </div>
-                <div style={{ background: 'var(--paper-2)', padding: '12px 16px', borderRadius: '10px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', fontWeight: 700 }}>GENDER POLICY</span>
-                  <strong style={{ fontSize: '0.95rem' }}>{property.gender || 'Unisex'} Living</strong>
-                </div>
-                <div style={{ background: 'var(--paper-2)', padding: '12px 16px', borderRadius: '10px' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', fontWeight: 700 }}>LOCK-IN PERIOD</span>
-                  <strong style={{ fontSize: '0.95rem' }}>1 Month Minimum</strong>
-                </div>
-              </div>
+              <dl className="r-property-facts">
+                {property.city && <div><dt>City</dt><dd>{property.city}</dd></div>}
+                {property.area && <div><dt>Locality</dt><dd>{property.area}</dd></div>}
+                {property.gender && <div><dt>Occupancy policy</dt><dd>{property.gender}</dd></div>}
+                {property.occupancy && property.occupancy !== 'New listing' && <div><dt>Listing status</dt><dd>{property.occupancy}</dd></div>}
+              </dl>
             </section>
           )}
 
-          {/* Tab 2: Room Options */}
           {(activeTab === 'rooms' || activeTab === 'overview') && (
-            <section className="r-detail-section">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h2 style={{ margin: 0 }}>Available Room Configurations</h2>
-                <span style={{ fontSize: '0.82rem', color: 'var(--jade)', fontWeight: 700 }}>
-                  Select a room to configure your booking
-                </span>
+            <section className="r-detail-section" id="property-panel-rooms" role={activeTab === 'rooms' ? 'tabpanel' : undefined} aria-labelledby={activeTab === 'rooms' ? 'property-tab-rooms' : undefined}>
+              <div className="r-property-section-heading">
+                <div>
+                  <h2>Room options</h2>
+                  <p>Select an available room to include it in your booking request.</p>
+                </div>
               </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {rooms.map((room, idx) => {
-                  const isSelected = selectedRoom?.roomId === room.roomId || (!selectedRoom && idx === 0)
-                  const rRent = Number(room.price || property.priceValue || 9000)
-                  const rDeposit = room.deposit || (rRent * 2)
-
-                  return (
-                    <motion.div
-                      key={room.roomId || idx}
-                      className={`r-v8-room-card ${isSelected ? 'selected' : ''}`}
-                      whileHover={{ scale: 1.01 }}
-                      onClick={() => setSelectedRoom(room)}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <img
-                        src={room.image ? getImageUrl(room.image) : galleryImages[idx % galleryImages.length]}
-                        alt={room.roomType}
-                        className="r-v8-room-img"
-                      />
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <h4 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800 }}>{room.roomType}</h4>
-                          <span className="r-room-avail">
-                            {room.availableCount ?? 2} beds available
+              {roomsError ? (
+                <div className="notification-error" role="alert">Room availability could not be loaded: {roomsError}</div>
+              ) : rooms.length ? (
+                <div className="r-property-room-list">
+                  {rooms.map((room) => {
+                    const isSelected = selectedRoom?.roomId === room.roomId
+                    const available = isRoomAvailable(room)
+                    const bedCount = room.availableCount ?? (
+                      room.capacity != null ? Math.max(0, Number(room.capacity) - Number(room.occupiedCount || 0)) : null
+                    )
+                    const roomImage = galleryImages[0]
+                    return (
+                      <button
+                        key={room.roomId}
+                        type="button"
+                        className={`r-v8-room-card ${isSelected ? 'selected' : ''} ${!available ? 'unavailable' : ''}`}
+                        onClick={() => available && setSelectedRoom(room)}
+                        disabled={!available}
+                        aria-pressed={isSelected}
+                      >
+                        {roomImage && !brokenImages.has(roomImage)
+                          ? <img src={roomImage} alt="" className="r-v8-room-img" onError={() => markImageBroken(roomImage)} />
+                          : <span className="r-room-image-placeholder"><ImageIcon size={24} /></span>}
+                        <span className="r-room-card-content">
+                          <span className="r-room-card-heading">
+                            <strong>{room.roomType}</strong>
+                            <span className={`r-room-status ${available ? 'available' : ''}`}>{available ? 'Available' : room.status || 'Unavailable'}</span>
                           </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px' }}>
-                          <span style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--jade)' }}>
-                            ${rRent.toLocaleString('en-US')}
-                          </span>
-                          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>/ month</span>
-                          <span style={{ fontSize: '0.8rem', color: '#9ca3af', marginLeft: '8px' }}>
-                            (Deposit: ${rDeposit.toLocaleString('en-US')})
-                          </span>
-                        </div>
-                        <div className="r-amenity-tags-row" style={{ marginTop: '8px' }}>
-                          {(room.facilities || ['AC', 'Wi-Fi', 'Attached Bath', 'Wardrobe']).map(f => (
-                            <span key={f} className="r-amenity-tag" style={{ fontSize: '0.74rem' }}>{f}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <button
-                          className={isSelected ? 'primary-button compact-button' : 'ghost-button compact-button'}
-                          style={{ padding: '8px 14px', fontSize: '0.82rem' }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedRoom(room)
-                          }}
-                        >
-                          {isSelected ? 'Selected' : 'Choose Room'}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )
-                })}
-              </div>
+                          <span className="r-room-price">{formatCurrency(room.price)} <small>/ month</small></span>
+                          {bedCount != null && <span className="r-room-beds"><Bed size={14} /> {bedCount} bed{bedCount === 1 ? '' : 's'} available</span>}
+                        </span>
+                        <span className="r-room-select-state">{isSelected ? 'Selected' : available ? 'Select room' : 'Unavailable'}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="r-property-empty-state">
+                  <Bed size={24} />
+                  <strong>Room configurations aren’t listed yet</strong>
+                  <span>You can request a property visit while the owner adds room availability.</span>
+                </div>
+              )}
             </section>
           )}
 
-          {/* Tab 3: Amenities */}
           {(activeTab === 'amenities' || activeTab === 'overview') && (
-            <section className="r-detail-section">
-              <h2>Amenities &amp; Lifestyle Features</h2>
-              <div className="r-amenities-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))' }}>
-                {(property.amenities || ['Wi-Fi', 'AC', 'Laundry', 'Meals', 'Parking', 'CCTV', 'Hot Water']).map(a => {
+            <section className="r-detail-section" id="property-panel-amenities" role={activeTab === 'amenities' ? 'tabpanel' : undefined} aria-labelledby={activeTab === 'amenities' ? 'property-tab-amenities' : undefined}>
+              <h2>Amenities</h2>
+              {property.amenities?.length ? (
+                <div className="r-amenities-grid r-property-amenities-grid">
+                {property.amenities.map(a => {
                   const Icon = amenityIconMap[a] || Wifi
                   return (
                     <div key={a} className="r-v8-amenity-tile">
-                      <span className="r-amenity-icon" style={{ background: 'rgba(16,185,129,0.12)', padding: '8px', borderRadius: '8px', color: '#10b981' }}>
-                        <Icon size={18} />
-                      </span>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{a}</span>
+                      <span className="r-amenity-icon"><Icon size={18} /></span>
+                      <span>{a}</span>
                     </div>
                   )
                 })}
-              </div>
+                </div>
+              ) : <p className="r-property-empty-copy">No amenities have been listed for this property.</p>}
             </section>
           )}
 
-          {/* Tab 4: Rules & Policies */}
           {(activeTab === 'rules' || activeTab === 'overview') && (
-            <section className="r-detail-section">
-              <h2>House Rules &amp; Tenancy Policies</h2>
-              <ul className="r-rules-list">
-                <li>🕒 Gate Closing Time: 11:00 PM (Prior notification required for late entry)</li>
-                <li>🚭 No smoking or vaping inside bedrooms and common indoor spaces</li>
-                <li>👥 Visitors permitted in designated reception &amp; lounge areas until 8:00 PM</li>
-                <li>🐾 Pets are strictly not permitted in standard accommodations</li>
-                <li>🧹 Professional housekeeping provided daily for common areas and twice a week for rooms</li>
-                <li>⚡ Electricity charges calculated via sub-meter at local government tariffs</li>
-              </ul>
+            <section className="r-detail-section" id="property-panel-rules" role={activeTab === 'rules' ? 'tabpanel' : undefined} aria-labelledby={activeTab === 'rules' ? 'property-tab-rules' : undefined}>
+              <h2>House rules</h2>
+              <p className="r-property-empty-copy">House rules have not been provided for this property.</p>
             </section>
           )}
 
-          {/* Tab 5: Neighborhood */}
           {(activeTab === 'location' || activeTab === 'overview') && (
-            <section className="r-detail-section">
-              <h2>Location &amp; Commute</h2>
-              <div style={{ background: 'var(--paper-2)', borderRadius: '12px', padding: '16px', border: '1px solid var(--line)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                  <div>
-                    <strong style={{ fontSize: '1rem', display: 'block' }}>{property.name}</strong>
-                    <p className="muted-copy" style={{ fontSize: '0.85rem', marginTop: '2px' }}>
-                      <MapPin size={13} style={{ display: 'inline', marginRight: '4px' }} />
-                      {property.location || `${property.area}, ${property.city}`}
-                    </p>
-                  </div>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(property.location || `${property.name} ${property.city}`)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ghost-button compact-button"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}
-                  >
+            <section className="r-detail-section" id="property-panel-location" role={activeTab === 'location' ? 'tabpanel' : undefined} aria-labelledby={activeTab === 'location' ? 'property-tab-location' : undefined}>
+              <h2>Neighborhood</h2>
+              <div className="r-property-location-card">
+                <div><strong>{property.name}</strong><p><MapPin size={15} /> {[property.location, property.area, property.city].filter(Boolean).join(', ')}</p></div>
+                {(property.location || property.area || property.city) && (
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([property.location, property.area, property.city].filter(Boolean).join(', '))}`} target="_blank" rel="noreferrer" className="ghost-button compact-button">
                     <ExternalLink size={14} /> Open in Google Maps
                   </a>
-                </div>
+                )}
               </div>
             </section>
           )}
 
-          {/* Tab 6: Reviews */}
           {(activeTab === 'reviews' || activeTab === 'overview') && (
-            <section className="r-detail-section">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h2 style={{ margin: 0 }}>Resident Reviews ({reviews.length})</h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#fef3c7', padding: '4px 10px', borderRadius: '12px', color: '#92400e', fontWeight: 800, fontSize: '0.85rem' }}>
-                  <Star size={14} fill="#f59e0b" color="#f59e0b" />
-                  {property.rating ? property.rating.toFixed(1) : '4.8'} / 5.0 Overall
-                </div>
+            <section className="r-detail-section" id="property-panel-reviews" role={activeTab === 'reviews' ? 'tabpanel' : undefined} aria-labelledby={activeTab === 'reviews' ? 'property-tab-reviews' : undefined}>
+              <div className="r-property-section-heading">
+                <div><h2>Resident reviews</h2><p>{reviews.length} review{reviews.length === 1 ? '' : 's'} from this property</p></div>
+                {reviewRating != null && <div className="r-property-rating"><Star size={16} fill="currentColor" /><strong>{reviewRating.toFixed(1)}</strong><span>out of 5</span></div>}
               </div>
 
-              {reviews.length === 0 ? (
-                <div style={{ background: 'var(--paper-2)', padding: '24px', borderRadius: '12px', textAlign: 'center' }}>
-                  <Star size={28} color="#d1d5db" style={{ margin: '0 auto 8px' }} />
-                  <p style={{ fontWeight: 700, margin: 0, color: '#4b5563' }}>Be the first verified resident to review {property.name}!</p>
-                  <p className="muted-copy" style={{ fontSize: '0.82rem', marginTop: '4px' }}>
-                    Reviews are verified from tenants who completed their stay.
-                  </p>
+              {reviewsError ? (
+                <div className="notification-error" role="alert">Reviews could not be loaded: {reviewsError}</div>
+              ) : reviews.length === 0 ? (
+                <div className="r-property-empty-state">
+                  <Star size={24} />
+                  <strong>No reviews yet</strong>
+                  <span>There aren’t any resident reviews for this property yet.</span>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="r-property-review-list">
                   {reviews.map(r => (
-                    <div key={r._id || r.id} style={{ background: 'var(--white)', border: '1px solid var(--line)', borderRadius: '10px', padding: '14px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong>{r.userName || r.residentName || 'Resident'}</strong>
-                        <span style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: 800 }}>★ {r.rating}</span>
+                    <article key={r._id || r.id} className="r-property-review">
+                      <div className="r-property-review-heading">
+                        <strong>Resident review</strong>
+                        <span><Star size={13} fill="currentColor" /> {Number(r.rating).toFixed(1)}</span>
                       </div>
-                      <p style={{ fontSize: '0.88rem', color: '#4b5563', marginTop: '6px' }}>{r.comment || r.review}</p>
-                    </div>
+                      {r.createdAt && <time dateTime={r.createdAt}>{new Date(r.createdAt).toLocaleDateString()}</time>}
+                      <p>{r.comment}</p>
+                      {r.ownerReply && <div className="r-property-owner-reply"><strong>Owner reply</strong><p>{r.ownerReply}</p></div>}
+                    </article>
                   ))}
                 </div>
               )}
@@ -697,136 +692,76 @@ export default function PropertyDetail() {
           )}
         </div>
 
-        {/* Right Column: Sticky V8 Booking Card */}
         <aside className="r-booking-pane">
           <div className="r-v8-booking-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span className="r-v8-price-pill">VERIFIED PRICING</span>
-              <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 700 }}>Direct Owner</span>
+            <div className="r-booking-card-heading">
+              <span className="r-v8-price-pill">Booking estimate</span>
+              {verificationApproved && <span className="r-booking-verified"><ShieldCheck size={13} /> Verified</span>}
             </div>
+            <div className="r-booking-price">{formatCurrency(currentRent)} <span>/ month</span></div>
+            <p className="r-booking-selected">{selectedRoom ? `Selected: ${selectedRoom.roomType}` : 'Choose an available room to continue.'}</p>
 
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '4px' }}>
-              <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--jade)' }}>
-                ${currentRent.toLocaleString('en-US')}
-              </span>
-              <span style={{ fontSize: '0.9rem', color: '#6b7280', fontWeight: 700 }}>/ month</span>
-            </div>
-            <p className="muted-copy" style={{ fontSize: '0.78rem', marginBottom: '16px' }}>
-              Selected: <strong>{selectedRoom?.roomType || 'Standard Co-Living Room'}</strong>
-            </p>
-
-            {/* Move-in Date Picker */}
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#4b5563', marginBottom: '6px' }}>
-                DESIRED MOVE-IN DATE
-              </label>
+            <div className="r-booking-control">
+              <label htmlFor="property-move-in">Move-in date</label>
               <input
+                id="property-move-in"
                 type="date"
+                required
                 value={moveInDate}
-                min={new Date().toISOString().split('T')[0]}
+                min={localDateString(new Date())}
                 onChange={e => setMoveInDate(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--line)', fontSize: '0.88rem', fontWeight: 600, background: 'var(--paper-2)' }}
               />
             </div>
 
-            {/* Stay Duration Selector */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 800, color: '#4b5563', marginBottom: '6px' }}>
-                STAY DURATION
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                {['1 Mo', '3 Mo', '6 Mo', '11 Mo'].map(dur => (
+            <fieldset className="r-booking-duration">
+              <legend>Stay duration</legend>
+              <div>
+                {['1 Month', '3 Months', '6 Months', '11 Months'].map(dur => (
                   <button
                     key={dur}
                     type="button"
+                    aria-pressed={stayDuration === dur}
+                    className={stayDuration === dur ? 'active' : ''}
                     onClick={() => setStayDuration(dur)}
-                    style={{
-                      padding: '7px 4px',
-                      borderRadius: '6px',
-                      border: stayDuration === dur ? '1.5px solid var(--jade)' : '1px solid var(--line)',
-                      background: stayDuration === dur ? 'rgba(16,185,129,0.1)' : 'var(--white)',
-                      color: stayDuration === dur ? 'var(--jade)' : '#4b5563',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
                   >
-                    {dur}
+                    {dur.replace(' Months', ' mo').replace(' Month', ' mo')}
                   </button>
                 ))}
               </div>
+            </fieldset>
+
+            <div className="r-booking-breakdown">
+              <div className="r-v8-bill-row">
+                <span>Monthly rent</span>
+                <strong>{formatCurrency(currentRent)}</strong>
+              </div>
+              {currentDeposit > 0 && <div className="r-v8-bill-row"><span>Refundable security deposit</span><strong>{formatCurrency(currentDeposit)}</strong></div>}
+              {selectedRoom && <div className="r-v8-bill-total"><span>Rent + listed deposit</span><span>{formatCurrency(totalInitial)}</span></div>}
+              <p>Final charges and terms are confirmed by the property owner.</p>
             </div>
 
-            {/* Live Pricing Breakdown */}
-            <div style={{ background: 'var(--paper-2)', borderRadius: '10px', padding: '12px 14px', marginBottom: '18px' }}>
-              <div className="r-v8-bill-row">
-                <span>Monthly Rent</span>
-                <strong>${currentRent.toLocaleString('en-US')}</strong>
-              </div>
-              <div className="r-v8-bill-row">
-                <span>Security Deposit (Refundable)</span>
-                <strong>${currentDeposit.toLocaleString('en-US')}</strong>
-              </div>
-              <div className="r-v8-bill-row">
-                <span>Maintenance &amp; High-Speed WiFi</span>
-                <strong style={{ color: '#10b981' }}>Included</strong>
-              </div>
-              <div className="r-v8-bill-row">
-                <span>Platform Brokerage</span>
-                <strong style={{ color: '#10b981' }}>$0 (Free)</strong>
-              </div>
-              <div className="r-v8-bill-total">
-                <span>Initial Payable at Move-in</span>
-                <span style={{ color: 'var(--jade)' }}>${totalInitial.toLocaleString('en-US')}</span>
-              </div>
-            </div>
-
-            {/* Action CTA Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="r-booking-actions">
               <button
                 className="primary-button"
-                style={{ width: '100%', padding: '12px', fontSize: '0.96rem', justifyContent: 'center' }}
+                type="button"
+                disabled={!canRequestBooking || isSubmitting}
                 onClick={() => {
                   setBookingError('')
                   setBookingSuccessData(null)
                   setShowBookingModal(true)
                 }}
               >
-                <BookOpen size={17} /> Request Instant Booking
+                <BookOpen size={17} /> Request booking
               </button>
-
               <button
                 className="ghost-button compact-button"
-                style={{ width: '100%', padding: '10px', fontSize: '0.88rem', justifyContent: 'center' }}
-                onClick={() => setShowVisitModal(true)}
+                type="button"
+                onClick={() => { setVisitError(''); setShowVisitModal(true) }}
               >
-                <CalendarDays size={16} /> Schedule Free Property Visit
+                <CalendarDays size={16} /> Schedule a visit
               </button>
             </div>
-
-            {/* Host / Owner Card */}
-            <div className="r-v8-host-card">
-              <div>
-                <span style={{ fontSize: '0.72rem', color: '#6b7280', fontWeight: 800, textTransform: 'uppercase' }}>VERIFIED HOST</span>
-                <strong style={{ fontSize: '0.88rem', display: 'block', marginTop: '2px' }}>Nestora Partner Housing</strong>
-                <span style={{ fontSize: '0.76rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                  <ShieldCheck size={12} /> Identity Verified
-                </span>
-              </div>
-              <button
-                className="ghost-button compact-button"
-                style={{ fontSize: '0.76rem', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                onClick={() => setShowContactModal(true)}
-              >
-                <Phone size={12} /> Contact Host
-              </button>
-            </div>
-
-            {/* Safe Living Guarantee */}
-            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', color: '#6b7280' }}>
-              <ShieldCheck size={16} color="var(--jade)" style={{ flexShrink: 0 }} />
-              <span>100% Verified stay, zero lock-in disputes, 24/7 resident support guarantee.</span>
-            </div>
+            {!availableRooms.length && <p className="r-booking-unavailable">Booking requests are unavailable until room availability is published.</p>}
           </div>
         </aside>
       </div>
@@ -843,11 +778,11 @@ export default function PropertyDetail() {
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                   <span className="r-v8-badge-verified">
-                    <ShieldCheck size={12} /> Instant Lease Confirmation
+                    <ShieldCheck size={12} /> Booking request
                   </span>
                 </div>
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '4px 0 12px' }}>
-                  Confirm Booking Reservation
+                  Review your booking request
                 </h2>
                 <p className="muted-copy" style={{ fontSize: '0.88rem', marginBottom: '16px' }}>
                   Review your reservation details for <strong>{property.name}</strong> before submitting.
@@ -861,7 +796,7 @@ export default function PropertyDetail() {
                     </div>
                     <div>
                       <span style={{ color: '#6b7280', fontSize: '0.75rem', display: 'block' }}>SELECTED ROOM</span>
-                      <strong>{selectedRoom?.roomType || 'Standard Room'}</strong>
+                      <strong>{selectedRoom.roomType}</strong>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280', fontSize: '0.75rem', display: 'block' }}>MOVE-IN DATE</span>
@@ -869,20 +804,20 @@ export default function PropertyDetail() {
                     </div>
                     <div>
                       <span style={{ color: '#6b7280', fontSize: '0.75rem', display: 'block' }}>MONTHLY RENT</span>
-                      <strong style={{ color: 'var(--jade)' }}>${currentRent.toLocaleString('en-US')}/mo</strong>
+                      <strong style={{ color: 'var(--jade)' }}>{formatCurrency(currentRent)} / month</strong>
                     </div>
                     <div>
                       <span style={{ color: '#6b7280', fontSize: '0.75rem', display: 'block' }}>REFUNDABLE SECURITY DEPOSIT</span>
-                      <strong>${Number(currentDeposit).toLocaleString('en-US')}</strong>
+                      <strong>{formatCurrency(currentDeposit)}</strong>
                     </div>
                     <div>
-                      <span style={{ color: '#6b7280', fontSize: '0.75rem', display: 'block' }}>PAYMENT STATUS</span>
-                      <span className="status-badge pending">Pay After Approval</span>
+                      <span style={{ color: '#6b7280', fontSize: '0.75rem', display: 'block' }}>BOOKING STATUS</span>
+                      <span className="status-badge pending">Pending owner review</span>
                     </div>
                   </div>
                 </div>
                 <p className="muted-copy" style={{ fontSize: '0.78rem', marginTop: '-8px', marginBottom: '14px' }}>
-                  The security deposit is recorded separately and is not included in the monthly rent payment.
+                  This is a request only. The owner will confirm availability and final terms before payment.
                 </p>
 
                 {bookingError && (
@@ -904,7 +839,7 @@ export default function PropertyDetail() {
                     disabled={isSubmitting}
                     onClick={handleConfirmBooking}
                   >
-                    {isSubmitting ? 'Confirming...' : 'Confirm Reservation'}
+                    {isSubmitting ? 'Submitting...' : 'Submit booking request'}
                   </button>
                 </div>
               </>
@@ -915,7 +850,7 @@ export default function PropertyDetail() {
                 </div>
                 <h3 style={{ fontSize: '1.35rem', fontWeight: 800 }}>Reservation Request Received!</h3>
                 <p className="muted-copy" style={{ fontSize: '0.88rem', margin: '8px 0 16px' }}>
-                  Your booking reference <strong>#{bookingSuccessData.bookingId}</strong> has been transmitted directly to the property manager for quick approval.
+                  Your booking request reference is <strong>#{bookingSuccessData.bookingId}</strong>. The property owner will review your request.
                 </p>
 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' }}>
@@ -955,14 +890,14 @@ export default function PropertyDetail() {
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
               <span className="r-v8-badge-verified">
-                <CalendarDays size={12} /> Free Physical Tour
+                <CalendarDays size={12} /> Property visit
               </span>
             </div>
             <h2 style={{ fontSize: '1.35rem', fontWeight: 800, margin: '6px 0 12px' }}>
               Schedule a Property Visit
             </h2>
             <p className="muted-copy" style={{ fontSize: '0.85rem', marginBottom: '16px' }}>
-              Meet the property manager at <strong>{property.name}</strong> for a complimentary walkthrough.
+              Request a visit to <strong>{property.name}</strong>. The property owner will confirm the arrangement.
             </p>
 
             <form onSubmit={handleScheduleVisit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -974,7 +909,7 @@ export default function PropertyDetail() {
                   type="date"
                   required
                   value={visitDate}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={localDateString(new Date())}
                   onChange={e => setVisitDate(e.target.value)}
                   style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--line)', background: 'var(--paper-2)' }}
                 />
@@ -1008,70 +943,16 @@ export default function PropertyDetail() {
                 />
               </div>
 
+              {visitError && <div className="notification-error" role="alert">{visitError}</div>}
               <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
-                <button type="button" className="ghost-button compact-button" onClick={() => setShowVisitModal(false)}>
+                <button type="button" className="ghost-button compact-button" disabled={isSubmitting} onClick={() => setShowVisitModal(false)}>
                   Cancel
                 </button>
                 <button type="submit" className="primary-button compact-button" disabled={isSubmitting}>
-                  {isSubmitting ? 'Scheduling...' : 'Confirm Free Visit'}
+                  {isSubmitting ? 'Requesting...' : 'Request visit'}
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Contact Host Modal */}
-      {showContactModal && (
-        <div className="modal-overlay" onClick={() => setShowContactModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
-            <button className="close-modal-btn" onClick={() => setShowContactModal(false)}>
-              <X size={18} />
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <span className="r-v8-badge-verified">
-                <ShieldCheck size={12} /> Verified Nestora Partner
-              </span>
-            </div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 800 }}>Property Host Contact</h2>
-            <p className="muted-copy" style={{ fontSize: '0.85rem', marginBottom: '16px' }}>
-              Reach out to the property manager directly for inquiries or instant clarifications.
-            </p>
-
-            <div style={{ background: 'var(--paper-2)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>PROPERTY NAME</span>
-                <strong>{property.name}</strong>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>PRIMARY PHONE</span>
-                <strong style={{ fontSize: '1.05rem', color: 'var(--jade)' }}>+91 98765 43210</strong>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>COMMUNICATION HOURS</span>
-                <span style={{ fontSize: '0.85rem' }}>9:00 AM – 8:00 PM (Mon - Sun)</span>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-              <a
-                href="tel:+919876543210"
-                className="primary-button compact-button"
-                style={{ flex: 1, justifyContent: 'center', textDecoration: 'none' }}
-              >
-                <Phone size={15} /> Call Host
-              </a>
-              <button
-                className="ghost-button compact-button"
-                style={{ flex: 1, justifyContent: 'center' }}
-                onClick={() => {
-                  navigator.clipboard?.writeText('+919876543210')
-                  showToast('Phone number copied to clipboard!')
-                }}
-              >
-                <Copy size={15} /> Copy Number
-              </button>
-            </div>
           </div>
         </div>
       )}

@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Search, Bell, HelpCircle, Menu, UserCircle, Settings, LogOut } from 'lucide-react'
 import ThemeToggle from '../../../components/ThemeToggle.jsx'
+import { useNotifications } from '../../../context/useNotifications.js'
 
 export default function OwnerNavbar({ user, onMenuClick, onLogout }) {
   const [profileOpen, setProfileOpen] = useState(false)
+  const { unreadCount } = useNotifications()
 
   return (
     <header className="owner-navbar">
@@ -36,7 +38,7 @@ export default function OwnerNavbar({ user, onMenuClick, onLogout }) {
         
         <Link to="/owner/notifications" className="owner-icon-btn nav-bell" title="Notifications">
           <Bell size={20} />
-          <span className="bell-badge">3</span>
+          {unreadCount > 0 && <span className="bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
         </Link>
 
         <div className="owner-profile-dropdown">

@@ -17,11 +17,15 @@ const {
   getAdminVisits,
   requireAdmin,
   emptyAdminCollection,
+  getAdminProfile,
+  updateAdminProfile,
 } = require("../controllers/userController");
 
 const router = express.Router();
 
 router.use(authMiddleware, requireAdmin);
+router.get("/admin/profile", getAdminProfile);
+router.put("/admin/profile", updateAdminProfile);
 router.get("/residents", getResidents);
 router.get("/owners", getOwners);
 router.get("/users", getUsers);

@@ -2,17 +2,12 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Menu, Search, Bell, BadgeCheck, HelpCircle, User, Settings, Activity, LogOut, ChevronDown, CheckCircle2, AlertTriangle
+  Menu, Search, Bell, BadgeCheck, HelpCircle, User, Settings, Activity, LogOut, ChevronDown
 } from 'lucide-react'
 
 import { apiRequest } from '../../../services/api.js'
 import ThemeToggle from '../../../components/ThemeToggle.jsx'
-
-const sampleNotifications = [
-  { id: 1, text: '18 properties waiting for verification', time: '10 mins ago', type: 'verification', alert: true },
-  { id: 2, text: '12 new booking issues reported', time: '1 hour ago', type: 'booking', alert: false },
-  { id: 3, text: '5 unresolved high-priority complaints', time: '2 hours ago', type: 'complaint', alert: true },
-]
+import { useNotifications } from '../../../context/useNotifications.js'
 
 export default function AdminNavbar({ user, onToggleSidebar, onLogout }) {
   const navigate = useNavigate()
@@ -20,6 +15,8 @@ export default function AdminNavbar({ user, onToggleSidebar, onLogout }) {
   const [showNotifMenu, setShowNotifMenu] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [pendingVerificationsCount, setPendingVerificationsCount] = useState(0)
+  const [notificationActionError, setNotificationActionError] = useState('')
+  const { notifications, unreadCount, markRead } = useNotifications()
   const notifRef = useRef(null)
   const profileRef = useRef(null)
 
@@ -89,7 +86,7 @@ export default function AdminNavbar({ user, onToggleSidebar, onLogout }) {
             aria-label="Notifications"
           >
             <Bell size={18} />
-            <span className="admin-bell-badge">3</span>
+            {unreadCount > 0 && <span className="admin-bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
 
           <AnimatePresence>
@@ -105,15 +102,29 @@ export default function AdminNavbar({ user, onToggleSidebar, onLogout }) {
                   <Link to="/admin/notifications" onClick={() => setShowNotifMenu(false)}>View all</Link>
                 </div>
                 <div className="notif-list">
-                  {sampleNotifications.map(n => (
-                    <div key={n.id} className={`notif-item ${n.alert ? 'alert' : ''}`}>
-                      {n.alert ? <AlertTriangle size={15} className="notif-icon-alert" /> : <CheckCircle2 size={15} className="notif-icon" />}
+                  {notifications.slice(0, 5).map((notification) => (
+                    <Link
+                      key={notification.id}
+                      to={notification.link || '/admin/notifications'}
+                      className={`notif-item ${notification.read ? '' : 'alert'}`}
+                      onClick={() => {
+                        setShowNotifMenu(false)
+                        if (!notification.read) {
+                          markRead(notification.id).catch((error) => {
+                            setNotificationActionError(error.message || 'Unable to mark as read.')
+                          })
+                        }
+                      }}
+                    >
+                      <Bell size={15} className={notification.read ? 'notif-icon' : 'notif-icon-alert'} />
                       <div className="notif-content">
-                        <p>{n.text}</p>
-                        <small>{n.time}</small>
+                        <p>{notification.title}</p>
+                        <small>{notification.message}</small>
                       </div>
-                    </div>
+                    </Link>
                   ))}
+                  {notificationActionError && <div className="notif-action-error" role="alert">{notificationActionError}</div>}
+                  {!notifications.length && <div className="notif-empty">No notifications yet.</div>}
                 </div>
               </motion.div>
             )}

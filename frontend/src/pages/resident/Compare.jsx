@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { GitCompare, X, Star, ShieldCheck, CheckCircle, AlertCircle } from 'lucide-react'
 import { propertyService } from '../../services/propertyService.js'
 import { getImageUrl } from '../../services/api.js'
@@ -15,6 +15,7 @@ const compareFields = [
 const amenityList = ['Wi-Fi', 'Meals', 'AC', 'Laundry', 'Security', 'Housekeeping', 'Parking']
 
 export default function Compare() {
+  const [searchParams] = useSearchParams()
   const [properties, setProperties] = useState([])
   const [selected, setSelected] = useState([])
 
@@ -22,9 +23,13 @@ export default function Compare() {
     propertyService.getAllProperties().then(data => {
       const normalized = data.map(property => ({ ...property, image: getImageUrl(property.images?.[0] || property.image) }))
       setProperties(normalized)
-      setSelected(current => current.length ? current : normalized.slice(0, 2).map(property => property.id))
+      const requestedId = Number(searchParams.get('property'))
+      const requested = normalized.find(property => property.id === requestedId)
+      setSelected(current => current.length ? current : requested
+        ? [requested.id, ...normalized.filter(property => property.id !== requested.id).slice(0, 1).map(property => property.id)]
+        : normalized.slice(0, 2).map(property => property.id))
     })
-  }, [])
+  }, [searchParams])
 
   const addProperty = (id) => {
     if (selected.includes(id) || selected.length >= 3) return

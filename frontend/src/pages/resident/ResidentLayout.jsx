@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useAuth } from '../../context/useAuth.js'
 import ResidentSidebar from './components/ResidentSidebar.jsx'
-import ThemeToggle from '../../components/ThemeToggle.jsx'
+import ResidentNavbar from './components/ResidentNavbar.jsx'
 
 export default function ResidentLayout() {
   const { user, logout } = useAuth()
@@ -20,10 +20,12 @@ export default function ResidentLayout() {
         setIsOpen={setSidebarOpen}
         onLogout={logout}
       />
-      <div className="resident-theme-control">
-        <ThemeToggle />
-      </div>
       <main className="r-main">
+        <ResidentNavbar
+          user={user}
+          onMenuClick={() => setSidebarOpen(true)}
+          onLogout={logout}
+        />
         <Outlet />
       </main>
     </div>

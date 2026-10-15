@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const http = require("http");
 const path = require("path");
 const connectDB = require("./config/db");
 const roleRoutes = require("./routes/roleRoutes");
@@ -14,6 +15,9 @@ const roomRoutes = require("./routes/roomRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const favoriteRoutes = require("./routes/favoriteRoutes");
 const amenityRoutes = require("./routes/amenityRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const attachChatSocket = require("./services/chatSocket");
 
 dotenv.config({ path: path.join(__dirname, ".env") });
 
@@ -36,6 +40,8 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/favorites", favoriteRoutes);
 app.use("/api/amenities", amenityRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api", userRoutes);
 
 // Test Route
@@ -52,7 +58,9 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   isDbConnected = await connectDB();
 
-  const server = app.listen(PORT, () => {
+  const server = http.createServer(app);
+  attachChatSocket(server);
+  server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 

@@ -3,10 +3,11 @@ import { Link, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, UserCheck, ShieldAlert, Building2, BadgeCheck,
   DoorOpen, BookOpen, CreditCard, CalendarDays, AlertTriangle, Star,
-  Bell, FileText, HelpCircle, TrendingUp, BarChart3, Settings, User, LogOut, X, Shield
+  Bell, FileText, HelpCircle, TrendingUp, BarChart3, Settings, User, LogOut, X
 } from 'lucide-react'
 import { apiRequest } from '../../../services/api.js'
 import NestoraLogo from '../../../components/NestoraLogo.jsx'
+import { useNotifications } from '../../../context/useNotifications.js'
 
 const adminNavGroups = [
   {
@@ -74,6 +75,7 @@ export default function AdminSidebar({ user, isOpen, setIsOpen, onLogout }) {
   const location = useLocation()
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'A'
   const [summary, setSummary] = useState({})
+  const { unreadCount } = useNotifications()
 
   useEffect(() => {
     let active = true
@@ -94,6 +96,7 @@ export default function AdminSidebar({ user, isOpen, setIsOpen, onLogout }) {
     payments: summary.pendingPayments,
     visits: summary.visits,
     reviews: summary.pendingReviews,
+    notifications: unreadCount,
   }
 
   return (
